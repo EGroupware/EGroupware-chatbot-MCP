@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - EGroupware Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="chat-header">
+            <h2>EGroupware AI Assistant</h2>
+            <p>Please log in with your EGroupware credentials</p>
+        </div>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="EGroupware Username" required autocomplete="username">
+            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <button type="submit">Login</button>
+            <p id="error-message" class="error-message"></p>
+        </form>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

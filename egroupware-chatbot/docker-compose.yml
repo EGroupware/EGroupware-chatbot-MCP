@@ -1,0 +1,40 @@
+# docker-compose.yml
+
+services:
+  # The Agent Service
+  agent-service:
+    build:
+      context: .
+      dockerfile: agent.Dockerfile
+    container_name: agent_service_c
+    ports:
+      # Map port 8000 on your host machine to port 8000 in the container
+      - "8000:8000"
+    env_file:
+      # Load environment variables from the .env file
+      - .env
+    # This service depends on the tool-server to be running first
+    depends_on:
+      - tool-server
+    networks:
+      - chatbot-net
+
+  # The Tool Server
+  tool-server:
+    build:
+      context: .
+      dockerfile: tool.Dockerfile
+    container_name: tool_server_c
+    ports:
+      # We don't strictly need to expose this port to the host,
+      # but it's useful for debugging (e.g., accessing its /docs)
+      - "8001:8001"
+    env_file:
+      - .env
+    networks:
+      - chatbot-net
+
+# Define the network that allows containers to communicate
+networks:
+  chatbot-net:
+    driver: bridge

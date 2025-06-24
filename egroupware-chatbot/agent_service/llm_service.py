@@ -1,0 +1,24 @@
+import os
+import openai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = openai.OpenAI(
+    api_key=os.getenv("IONOS_API_KEY"),
+    base_url=os.getenv("IONOS_API_BASE_URL"),
+)
+MODEL_NAME = "meta-llama/Llama-3.3-70B-Instruct"
+
+def get_streaming_chat_response(messages, tools):
+    try:
+        return client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            stream=True,
+        )
+    except Exception as e:
+        print(f"Error calling LLM: {e}")
+        raise

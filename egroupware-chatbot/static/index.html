@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGroupware Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>EGroupware AI Assistant</h2>
+            <button id="logout-btn">Logout</button>
+        </div>
+        <div id="chat-box" class="chat-box">
+             <!-- Initial greeting from the bot -->
+             <div class="message bot-message">
+                <p>Hi there! 👋 My name is EGroupwareBot. How can I assist you today?</p>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Ask about contacts, calendar, or tasks..." autocomplete="off" autofocus>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
