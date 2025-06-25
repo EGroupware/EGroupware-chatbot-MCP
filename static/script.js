@@ -68,24 +68,37 @@ function setupChatPage() {
         const message = messageInput.value.trim();
         if (!message) return;
 
-        addMessageToBox(message, 'user-message');
+        addUserMessageToBox(message);
         messageInput.value = '';
         messageInput.focus();
 
         getAIResponse(message);
     });
 
-    function addMessageToBox(text, className) {
+    function addUserMessageToBox(text) {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', className);
+        messageElement.classList.add('message', 'user-message');
+        messageElement.textContent = text;
+        chatBox.appendChild(messageElement);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-        const p = document.createElement('p');
-        p.textContent = text;
-        messageElement.appendChild(p);
+    function addBotMessageToBox() {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', 'bot-message');
+
+        const mainTextP = document.createElement('p');
+        mainTextP.className = 'main-response-text';
+
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'status-updates';
+
+        messageElement.appendChild(mainTextP);
+        messageElement.appendChild(statusDiv);
 
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
-        return messageElement;
+        return { mainTextElement: mainTextP, statusElement: statusDiv };
     }
 
     async function getAIResponse(message) {
@@ -96,12 +109,9 @@ function setupChatPage() {
             return;
         }
 
-        const botMessageElement = addMessageToBox('', 'bot-message');
-        const pElement = botMessageElement.querySelector('p');
+        const { mainTextElement, statusElement } = addBotMessageToBox();
 
-        // Use a cursor/blinking effect for the placeholder
-        pElement.style.minHeight = '1.2em';
-        pElement.innerHTML = 'Thinking <span class="blinking-cursor"></span>';
+        mainTextElement.innerHTML = 'Thinking<span class="blinking-cursor">...</span>';
 
         const url = `/chat?message=${encodeURIComponent(message)}&token=${encodeURIComponent(token)}`;
         eventSource = new EventSource(url);
@@ -109,23 +119,23 @@ function setupChatPage() {
 
         eventSource.onmessage = (event) => {
             if (firstChunk) {
-                pElement.innerHTML = ''; // Clear "Thinking..."
+                mainTextElement.innerHTML = ''; // Clear "Thinking..."
                 firstChunk = false;
             }
             const data = JSON.parse(event.data);
 
             if (data.type === 'token') {
-                pElement.textContent += data.content;
+                mainTextElement.textContent += data.content;
             } else if (data.type === 'tool_call') {
-                 pElement.innerHTML += `<br><i>🤖 Calling tool: ${data.tool_name}...</i>`;
+                 statusElement.innerHTML += `<i>🤖 Calling tool: ${data.tool_name}...</i><br>`;
             } else if (data.type === 'tool_result') {
-                 pElement.innerHTML += `<br><i>✅ Tool finished. Generating response...</i>`;
+                 statusElement.innerHTML += `<i>✅ Tool finished. Generating response...</i><br>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         };
 
-        eventSource.onerror = (err) => {
-            pElement.innerHTML = 'Error connecting to the server. Please check your connection and try again.';
+        eventSource.onerror = () => {
+            mainTextElement.textContent = 'Error connecting to the server. Please check your connection and try again.';
             eventSource.close();
         };
 
