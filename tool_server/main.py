@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional , List
 
 from .tools import addressbook, calendar, infolog, knowledge
 from dotenv import load_dotenv
@@ -40,11 +40,13 @@ class SearchContactsArgs(BaseModel):
 
 class CreateEventArgs(BaseModel):
     title: str
-    start_datetime: str
+    start_datetime: str # e.g., "2024-09-15T14:00:00"
     duration_minutes: Optional[int] = 60
+    time_zone: Optional[str] = "UTC" # IANA Time Zone (e.g., "Europe/Berlin")
     description: Optional[str] = None
     location: Optional[str] = None
-
+    attendee_emails: Optional[List[str]] = None # A list of email addresses
+    priority: Optional[int] = 5
 
 class ListEventsArgs(BaseModel):
     start_date: str
