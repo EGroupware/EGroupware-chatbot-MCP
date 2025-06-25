@@ -1,206 +1,221 @@
+/* Import the Inter font for a clean, modern look */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* --- Define a single, clean color palette --- */
+:root {
+    --bg-body: #f7f8fc;
+    --bg-container: #ffffff;
+    --border-color: #e5e7eb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --accent-color: #6d28d9; /* A professional violet */
+    --accent-color-hover: #5b21b6;
+    --user-message-text: #ffffff;
+    --bot-message-bg: #f3f4f6;
+    --shadow-color: rgba(99, 102, 241, 0.1);
+}
+
+/* --- General Styles --- */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f4f7f9;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-body);
     margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    color: #333;
+    color: var(--text-primary);
 }
 
-/* --- Login Page Styles --- */
-.login-container {
-    background-color: white;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
-    text-align: center;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.login-container h2 {
-    margin-top: 0;
-}
-
-.login-container p {
-    color: #666;
-    margin-bottom: 25px;
-}
-
-#login-form input {
-    width: calc(100% - 24px);
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-}
-
-#login-form button {
-    width: 100%;
-    padding: 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-#login-form button:hover {
-    background-color: #0056b3;
-}
-
-.error-message {
-    color: #d93025;
-    margin-top: 10px;
-    min-height: 20px;
-    font-weight: 500;
-}
-
-
-/* --- Chat Page Styles --- */
-.chat-container {
+/* --- Main Container (Shared by Login & Chat) --- */
+.login-container, .chat-container {
     width: 100%;
     max-width: 800px;
-    height: 90vh;
-    max-height: 800px;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+    background-color: var(--bg-container);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px var(--shadow-color);
+    border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
-.chat-header {
-    background: #007bff;
-    color: white;
-    padding: 15px 20px;
+.chat-container {
+    height: 90vh;
+    max-height: 850px;
+}
+
+/* --- Login Page Specifics --- */
+.login-container {
+    padding: 50px;
     text-align: center;
-    position: relative;
-    border-bottom: 1px solid #ddd;
-    flex-shrink: 0;
 }
-
-.chat-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
+.login-header p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
 }
-
-#logout-btn {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #e74c3c;
-    color: white;
+#login-form input {
+    width: calc(100% - 30px);
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 16px;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+#login-form button {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--accent-color);
+    color: var(--user-message-text);
     border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
 }
-#logout-btn:hover {
-    background: #c0392b;
+#login-form button:hover {
+    background-color: var(--accent-color-hover);
+}
+.error-message {
+    color: #ef4444;
+    margin-top: 15px;
+    min-height: 20px;
+    font-weight: 500;
 }
 
+/* --- Chat Header --- */
+.chat-header {
+    background: var(--bg-container);
+    color: var(--text-primary);
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.chat-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+#logout-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background-color 0.2s;
+}
+#logout-btn:hover {
+    color: var(--accent-color);
+    background-color: var(--bot-message-bg);
+}
+
+/* --- Chat Box & Messages --- */
 .chat-box {
     flex-grow: 1;
-    padding: 20px;
+    padding: 25px;
     overflow-y: auto;
-    background-color: #f9f9f9;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
-
 .message {
-    max-width: 75%;
-    padding: 12px 18px;
-    border-radius: 20px;
-    line-height: 1.5;
+    max-width: 78%;
+    padding: 14px 20px;
+    border-radius: 18px;
+    line-height: 1.6;
     word-wrap: break-word;
+    animation: fadeIn 0.4s ease-out;
 }
-
 .user-message {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--user-message-text);
     align-self: flex-end;
-    border-bottom-right-radius: 5px;
+    border-bottom-right-radius: 4px;
 }
-
 .bot-message {
-    background-color: #e9e9eb;
-    color: #333;
+    background-color: var(--bot-message-bg);
     align-self: flex-start;
-    border-bottom-left-radius: 5px;
+    border-bottom-left-radius: 4px;
 }
-
-/* Style for the main text from the AI */
 .main-response-text {
     margin: 0;
-    white-space: pre-wrap;
+    white-space: pre-wrap; /* Key for multi-line responses */
 }
-
-/* Style for the status update messages */
 .status-updates {
-    margin-top: 8px;
+    margin-top: 10px;
     font-size: 0.9em;
-    color: #555;
+    color: var(--text-secondary);
 }
-
-/* Blinking cursor effect for the "Thinking..." placeholder */
-@keyframes blink {
-    50% { opacity: 0; }
+.status-updates i {
+    font-style: normal;
 }
 .blinking-cursor {
-    animation: blink 1s step-start 0s infinite;
+    animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+    from, to { opacity: 1; }
+    50% { opacity: 0; }
 }
 
-
+/* --- Input Area --- */
 .chat-input-area {
-    padding: 15px 20px;
-    border-top: 1px solid #ddd;
+    padding: 15px 25px;
+    border-top: 1px solid var(--border-color);
     background-color: #fff;
     flex-shrink: 0;
 }
-
 #chat-form {
     display: flex;
+    align-items: flex-end;
     gap: 10px;
 }
-
 #message-input {
     flex-grow: 1;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 12px 18px;
     font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: none;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: var(--bg-body);
 }
-
-#message-input:focus {
+#message-input:focus, #login-form input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
 }
-
 #chat-form button {
-    padding: 10px 20px;
+    height: 48px;
+    width: 48px;
     border: none;
-    background-color: #007bff;
-    color: white;
-    border-radius: 20px;
+    background-color: var(--accent-color);
+    color: var(--user-message-text);
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background-color 0.2s;
 }
-
 #chat-form button:hover {
-    background-color: #0056b3;
+    background-color: var(--accent-color-hover);
 }
