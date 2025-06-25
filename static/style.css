@@ -141,16 +141,27 @@ body {
     border-bottom-left-radius: 5px;
 }
 
-.bot-message p {
+/* Style for the main text from the AI */
+.main-response-text {
     margin: 0;
+    white-space: pre-wrap;
 }
 
-.bot-message i {
-    color: #555;
+/* Style for the status update messages */
+.status-updates {
+    margin-top: 8px;
     font-size: 0.9em;
-    display: block;
-    margin-top: 5px;
+    color: #555;
 }
+
+/* Blinking cursor effect for the "Thinking..." placeholder */
+@keyframes blink {
+    50% { opacity: 0; }
+}
+.blinking-cursor {
+    animation: blink 1s step-start 0s infinite;
+}
+
 
 .chat-input-area {
     padding: 15px 20px;
