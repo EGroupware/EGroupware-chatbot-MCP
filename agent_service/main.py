@@ -80,15 +80,52 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
          "function": {"name": "search_contacts", "description": "Searches for existing contacts by name or email.",
                       "parameters": {"type": "object", "properties": {"query": {"type": "string"}},
                                      "required": ["query"]}}},
-        {"type": "function",
-         "function": {"name": "create_event", "description": "Schedules a new event in the calendar.",
-                      "parameters": {"type": "object", "properties": {"title": {"type": "string"},
-                                                                      "start_datetime": {"type": "string",
-                                                                                         "description": "ISO format like '2024-08-15T14:00:00'"},
-                                                                      "duration_minutes": {"type": "integer"},
-                                                                      "description": {"type": "string"},
-                                                                      "location": {"type": "string"}},
-                                     "required": ["title", "start_datetime"]}}},
+        {
+            "type": "function",
+            "function": {
+                "name": "create_event",
+                "description": "Schedules a new event, meeting, or appointment in the EGroupware calendar using the detailed JSCalendar format. Can specify attendees, timezone, and priority.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title": {
+                            "type": "string",
+                            "description": "The main title or subject of the event."
+                        },
+                        "start_datetime": {
+                            "type": "string",
+                            "description": "The start date and time in ISO-like format, e.g., '2024-09-27T15:30:00'."
+                        },
+                        "duration_minutes": {
+                            "type": "integer",
+                            "description": "The duration of the event in minutes. Defaults to 60."
+                        },
+                        "time_zone": {
+                            "type": "string",
+                            "description": "The IANA Time Zone for the event, e.g., 'Europe/Berlin' or 'America/New_York'. Defaults to 'UTC'."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A detailed description or agenda for the event."
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": "The physical location or online meeting link for the event."
+                        },
+                        "attendee_emails": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "A list of email addresses for people to invite to the event."
+                        },
+                        "priority": {
+                            "type": "integer",
+                            "description": "A priority from 1 (highest) to 9 (lowest). Defaults to 5."
+                        }
+                    },
+                    "required": ["title", "start_datetime"]
+                }
+            }
+        },
         {"type": "function", "function": {"name": "list_events", "description": "Lists upcoming events.",
                                           "parameters": {"type": "object", "properties": {
                                               "start_date": {"type": "string", "description": "YYYY-MM-DD"},
