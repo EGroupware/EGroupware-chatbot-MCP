@@ -50,7 +50,7 @@ function setupLoginPage() {
 
 function setupChatPage() {
     const chatForm = document.getElementById('chat-form');
-    const messageInput = document.getElementById('message-input'); // This is a textarea
+    const messageInput = document.getElementById('message-input');
     const chatBox = document.getElementById('chat-box');
     const logoutBtn = document.getElementById('logout-btn');
     let eventSource = null;
