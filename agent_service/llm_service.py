@@ -1,7 +1,7 @@
 import os
 import openai
 from dotenv import load_dotenv
-#
+
 load_dotenv()
 
 client = openai.OpenAI(
@@ -28,7 +28,7 @@ def get_streaming_chat_response(messages, tools):
 
 # ---  Using Openai API ---
 
-client = openai.OpenAI()
+# client = openai.OpenAI()
 
 # Set the API key and base URL from environment variables
 # MODEL_NAME = "gpt-4o"
