@@ -27,7 +27,7 @@ def create_event(
     # Construct the base JSCalendar payload
     payload = {
         "@type": "Event",
-        "prodId": "EGroupware AI-Bot v1.0",
+        "prodId": "EGroupware Calendar 23.1.002", # remove it
         "uid": f"urn:uuid:{uuid.uuid4()}",
         "created": now_utc,
         "updated": now_utc,
@@ -36,7 +36,7 @@ def create_event(
         "timeZone": time_zone,
         "duration": f"PT{duration_minutes}M",  # ISO 8601 duration format
         "status": "confirmed",
-        "priority": priority,
+        "priority": priority, # 9 (highest) to 1 (lowest), default is 5
         "privacy": "public"
     }
 
