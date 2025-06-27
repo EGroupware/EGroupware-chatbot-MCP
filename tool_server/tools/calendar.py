@@ -47,6 +47,7 @@ def create_event(
         payload["locations"] = {"loc-1": {"@type": "Location", "name": location}}
 
     # --- Handle Participants ---
+    # EGroupware uses a specific format for participants and for adding participants it should be in users address book.
     # The owner of the event is the person making the request.
     owner_username = auth[0]
     owner_email = "sysop@amir.egroupware.net"  # Placeholder email, adjust as needed
