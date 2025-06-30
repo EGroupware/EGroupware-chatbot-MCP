@@ -84,7 +84,7 @@ The chatbot understands natural language requests such as:
 - "Create a new contact for John Doe"
 - "Schedule a meeting tomorrow at 2 PM"
 - "Create a task for the marketing team"
-- "What's our company policy on remote work?"
+- "What is EGroupware's mission?"
 
 ## Development
 
