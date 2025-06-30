@@ -30,7 +30,7 @@ This microservices architecture makes the system more robust, scalable, and easi
 
 1. Clone the repository:
 ```bash
-git clone [repository-url]
+git clone https://github.com/amirdhs/EGroupware-chatbot-MCP.git
 cd egroupware-chatbot-MCP
 ```
 
