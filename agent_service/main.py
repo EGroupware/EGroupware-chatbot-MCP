@@ -226,7 +226,7 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
 
     yield "event: end\ndata: {}\n\n"
 
-
+# Endpoint to handle chat requests
 @app.get("/chat")
 async def chat_endpoint(message: str, token: str):
     current_user = await auth.get_current_user(token)
