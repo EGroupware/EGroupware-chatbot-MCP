@@ -39,3 +39,4 @@ def get_company_info():
             "status": "error",
             "message": f"An unexpected error occurred while reading the knowledge file: {str(e)}"
         })
+
