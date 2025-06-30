@@ -1,37 +1,41 @@
+
 import os
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+import json
 
 
-def get_about_us_info():
+def get_company_info():
     """
-    Fetches the content of the company's 'About Us' Google Doc.
-    Use this to answer questions about the company, its products, policies, etc.
+    Fetches the company's knowledge base by reading a local markdown file.
+    Use this to answer any questions about the company, its products, policies, history,
+    contact information, or recent news.
     """
     try:
-        doc_id = os.getenv("GOOGLE_DOC_ID")
-        creds_path = 'credentials.json'
-
-        if not doc_id:
-            return "Error: GOOGLE_DOC_ID is not configured."
-        if not os.path.exists(creds_path):
-            return "Error: Google credentials.json file not found."
-
-        creds = service_account.Credentials.from_service_account_file(
-            creds_path, scopes=['https://www.googleapis.com/auth/documents.readonly']
+        # This path is constructed relative to the current file's location,
+        # making it robust and independent of where the server is run from.
+        # __file__ -> /.../tool_server/tools/knowledge.py
+        # os.path.dirname(__file__) -> /.../tool_server/tools
+        # os.path.dirname(...) -> /.../tool_server
+        # os.path.join(...) -> /.../tool_server/knowledge/company_info.md
+        knowledge_file_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), 'knowledge', 'company_info.md'
         )
-        service = build('docs', 'v1', credentials=creds)
 
-        document = service.documents().get(documentId=doc_id).execute()
-        doc_content = document.get('body').get('content')
+        with open(knowledge_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
 
-        text = ''
-        for value in doc_content:
-            if 'paragraph' in value:
-                elements = value.get('paragraph').get('elements')
-                for elem in elements:
-                    if 'textRun' in elem:
-                        text += elem.get('textRun').get('content')
-        return text if text else "The document appears to be empty."
+        # Return the content in a structured JSON format, consistent with other tools.
+        return json.dumps({
+            "status": "success",
+            "message": "Company knowledge base retrieved successfully.",
+            "content": content
+        })
+    except FileNotFoundError:
+        return json.dumps({
+            "status": "error",
+            "message": "The company knowledge file (company_info.md) could not be found on the server."
+        })
     except Exception as e:
-        return f"An error occurred while fetching the document: {str(e)}"
+        return json.dumps({
+            "status": "error",
+            "message": f"An unexpected error occurred while reading the knowledge file: {str(e)}"
+        })
