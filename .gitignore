@@ -16,8 +16,7 @@ ENV/
 *.swp
 *.swo
 
-# Credentials and sensitive data
-credentials.json
+
 
 # Logs
 *.log
