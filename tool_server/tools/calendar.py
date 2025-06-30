@@ -1,9 +1,9 @@
-
 import requests
 import json
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
+import re
 
 
 def create_event(
@@ -19,81 +19,91 @@ def create_event(
         priority: int = 5
 ):
     """
-    Schedules a new event in the EGroupware calendar using the JSCalendar format.
+    Schedules a new event in the user's personal EGroupware calendar,
+    including all specified details and participants.
     """
-    url = f"{base_url}/calendar"
+    username = auth[0]
+    # Dynamically construct the correct URL for the authenticated user's calendar.
+    user_specific_base_url = re.sub(r'/(sysop|[^/]+)$', f'/{username}', base_url.rstrip('/'))
+    url = f"{user_specific_base_url}/calendar/"
+
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    # Construct the base JSCalendar payload
+    # --- Participant Block Construction ---
+    participants = {}
+    participant_key_counter = 1
+
+    # 1. Add the event owner.
+    # IMPORTANT: The generated email must be a valid, existing email for the user in EGroupware.
+    owner_email = f"{username}@amir.egroupware.net"  # Adjust this format if needed.
+
+    participants[str(participant_key_counter)] = {
+        "@type": "Participant",
+        "name": username.capitalize(),
+        "email": owner_email,
+        "kind": "individual",
+        "roles": {"owner": True, "chair": True},
+        "participationStatus": "accepted"
+    }
+    participant_key_counter += 1
+
+    # 2. Add other attendees from the provided email list.
+    if attendee_emails:
+        for email in attendee_emails:
+            attendee_name = email.split('@')[0].replace('.', ' ').title()
+
+            participants[str(participant_key_counter)] = {
+                "@type": "Participant",
+                "name": attendee_name,
+                "email": email,
+                "kind": "individual",
+                "roles": {"attendee": True},
+                "participationStatus": "needs-action"
+            }
+            participant_key_counter += 1
+
+    # --- Final Payload Construction ---
     payload = {
         "@type": "Event",
-        "prodId": "EGroupware Calendar 23.1.002", # remove it
         "uid": f"urn:uuid:{uuid.uuid4()}",
         "created": now_utc,
         "updated": now_utc,
         "title": title,
         "start": start_datetime,
         "timeZone": time_zone,
-        "duration": f"PT{duration_minutes}M",  # ISO 8601 duration format
+        "duration": f"PT{duration_minutes}M",
+        "participants": participants,
         "status": "confirmed",
-        "priority": priority, # 9 (highest) to 1 (lowest), default is 5
+        "priority": priority,
         "privacy": "public"
     }
 
-    # Add optional fields if they exist
+    # Add optional text fields only if they were provided
     if description:
         payload["description"] = description
     if location:
         payload["locations"] = {"loc-1": {"@type": "Location", "name": location}}
 
-    # --- Handle Participants ---
-    # EGroupware uses a specific format for participants and for adding participants it should be in users address book.
-    # The owner of the event is the person making the request.
-    owner_username = auth[0]
-    owner_email = "sysop@amir.egroupware.net"  # Placeholder email, adjust as needed
-    participants = {
-        "owner": {
-            "@type": "Participant",
-            "name": owner_username,  # We may not have full name, username is a safe fallback
-            "email": owner_email,  # Assuming username might be an email, or a placeholder
-            "roles": {"owner": True, "chair": True},
-            "participationStatus": "accepted"
-        }
-    }
-    # Add other attendees if provided
-    if attendee_emails:
-        for i, email in enumerate(attendee_emails):
-            participants[f"attendee-{i + 1}"] = {
-                "@type": "Participant",
-                "email": email,
-                "participationStatus": "needs-action"
-            }
-    payload["participants"] = participants
-
+    # --- API Call and Response Handling ---
     try:
         response = requests.post(
             url, auth=auth, json=payload, headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
 
-        # Return a structured response for the LLM
+        success_message = f"Event '{title}' was created successfully."
+        if attendee_emails:
+            success_message += f" Invited: {', '.join(attendee_emails)}."
+
         return json.dumps({
             "status": "success",
-            "message": "Event created successfully in the calendar.",
-            "event_details": {
-                "title": title,
-                "start": start_datetime,
-                "timeZone": time_zone,
-                "duration_minutes": duration_minutes,
-                "attendees": list(p["email"] for p in participants.values())
-            }
+            "message": success_message
         })
     except requests.exceptions.HTTPError as e:
         return json.dumps({
             "status": "error",
-            "message": f"Failed to create event. Server responded with: {e.response.text}"
+            "message": f"Failed to create event. API Error: {e.response.text}"
         })
-
 
 
 def list_events(base_url: str, auth: tuple, start_date: str, end_date: str):
@@ -102,10 +112,7 @@ def list_events(base_url: str, auth: tuple, start_date: str, end_date: str):
     Required: start_date, end_date (format YYYY-MM-DD).
     """
     url = f"{base_url}/calendar"
-    # EGroupware's API for filtering by date might require specific query params.
-    # This is a simplified example. You might need to adjust based on EGroupware's CalDAV/GroupDAV specifics.
-    # For this example, we'll fetch all and filter, which is inefficient but demonstrates the principle.
-    params = {"props[]": "getetag", "limit": 100}  # Assuming we can fetch events
+    params = {"props[]": "getetag", "limit": 100}
 
     try:
         response = requests.get(url, auth=auth, params=params, headers={"Accept": "application/json"})
@@ -116,8 +123,6 @@ def list_events(base_url: str, auth: tuple, start_date: str, end_date: str):
             return "No events found in the calendar."
 
         events = data.get("result", [])
-        # This is a placeholder for actual filtering logic.
-        # A real implementation would need to parse event start/end times.
         event_titles = [event.get('title', 'Untitled Event') for event in events[:5]]
 
         if not event_titles:
