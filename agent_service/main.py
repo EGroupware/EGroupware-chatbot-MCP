@@ -68,79 +68,121 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
         chat_histories[current_user.username] = [{"role": "system", "content": prompts.get_system_prompt()}]
     chat_histories[current_user.username].append({"role": "user", "content": message})
 
+
     tool_definitions = [
-        {"type": "function",
-         "function": {"name": "create_contact", "description": "Adds a new contact to the EGroupware address book.",
-                      "parameters": {"type": "object",
-                                     "properties": {"full_name": {"type": "string"}, "email": {"type": "string"},
-                                                    "phone": {"type": "string"}, "company": {"type": "string"},
-                                                    "address": {"type": "string"}, "notes": {"type": "string"}},
-                                     "required": ["full_name", "email"]}}},
-        {"type": "function",
-         "function": {"name": "search_contacts", "description": "Searches for existing contacts by name or email.",
-                      "parameters": {"type": "object", "properties": {"query": {"type": "string"}},
-                                     "required": ["query"]}}},
+        {
+            "type": "function",
+            "function": {
+                "name": "create_contact",
+                "description": "Adds a new contact to the EGroupware address book.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "full_name": {"type": "string"},
+                        "email": {"type": "string"},
+                        "phone": {"type": "string"},
+                        "company": {"type": "string"},
+                        "address": {"type": "string"},
+                        "notes": {"type": "string"}
+                    },
+                    "required": ["full_name", "email"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "search_contacts",
+                "description": "Searches for existing contacts by name or email.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"}
+                    },
+                    "required": ["query"],
+                },
+            },
+        },
         {
             "type": "function",
             "function": {
                 "name": "create_event",
-                "description": "Schedules a new event, meeting, or appointment in the EGroupware calendar using the detailed JSCalendar format. Can specify attendees, timezone, and priority.",
+                "description": "Schedules a new event in the user's calendar. Requires a title, start time, and end time. Can optionally include a description, location, and a list of attendee emails.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "title": {
                             "type": "string",
-                            "description": "The main title or subject of the event."
+                            "description": "The title or subject of the event."
                         },
                         "start_datetime": {
                             "type": "string",
-                            "description": "The start date and time in ISO-like format, e.g., '2024-09-27T15:30:00'."
+                            "description": "The start date and time in 'YYYY-MM-DD HH:MM:SS' format."
                         },
-                        "duration_minutes": {
-                            "type": "integer",
-                            "description": "The duration of the event in minutes. Defaults to 60."
-                        },
-                        "time_zone": {
+                        "end_datetime": {
                             "type": "string",
-                            "description": "The IANA Time Zone for the event, e.g., 'Europe/Berlin' or 'America/New_York'. Defaults to 'UTC'."
+                            "description": "The end date and time in 'YYYY-MM-DD HH:MM:SS' format. The AI must calculate this if the user provides a duration (e.g., 'for 90 minutes')."
                         },
                         "description": {
                             "type": "string",
-                            "description": "A detailed description or agenda for the event."
+                            "description": "A detailed agenda for the event."
                         },
                         "location": {
                             "type": "string",
-                            "description": "The physical location or online meeting link for the event."
+                            "description": "The physical location or online meeting link."
                         },
-                        "attendee_emails": {
+                        "attendees": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "A list of email addresses for people to invite to the event."
-                        },
-                        "priority": {
-                            "type": "integer",
-                            "description": "A priority from 1 (highest) to 9 (lowest). Defaults to 5."
+                            "description": "A list of email addresses for people to invite."
                         }
                     },
-                    "required": ["title", "start_datetime"]
-                }
-            }
+                    "required": ["title", "start_datetime", "end_datetime"],
+                },
+            },
         },
-        {"type": "function", "function": {"name": "list_events", "description": "Lists upcoming events.",
-                                          "parameters": {"type": "object", "properties": {
-                                              "start_date": {"type": "string", "description": "YYYY-MM-DD"},
-                                              "end_date": {"type": "string", "description": "YYYY-MM-DD"}},
-                                                         "required": ["start_date", "end_date"]}}},
-        {"type": "function", "function": {"name": "create_task", "description": "Creates a new task in InfoLog.",
-                                          "parameters": {"type": "object", "properties": {"title": {"type": "string"},
-                                                                                          "due_date": {"type": "string",
-                                                                                                       "description": "YYYY-MM-DD"},
-                                                                                          "description": {
-                                                                                              "type": "string"}},
-                                                         "required": ["title"]}}},
-        {"type": "function",
-         "function": {"name": "get_about_us_info", "description": "Fetches company info from a document.",
-                      "parameters": {"type": "object", "properties": {}}}},
+        {
+            "type": "function",
+            "function": {
+                "name": "list_events",
+                "description": "Lists upcoming events between a start and end date.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "start_date": {"type": "string", "description": "Start date in YYYY-MM-DD format."},
+                        "end_date": {"type": "string", "description": "End date in YYYY-MM-DD format."}
+                    },
+                    "required": ["start_date", "end_date"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "create_task",
+                "description": "Creates a new task in InfoLog.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "due_date": {"type": "string", "description": "Due date in YYYY-MM-DD format."},
+                        "description": {"type": "string"}
+                    },
+                    "required": ["title"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_company_info",
+                "description": "Fetches the company's internal knowledge base. Use this to answer any questions about the company's mission, products, policies, history, or contact details.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                },
+            },
+        },
     ]
 
     stream = llm_service.get_streaming_chat_response(chat_histories[current_user.username], tool_definitions)
