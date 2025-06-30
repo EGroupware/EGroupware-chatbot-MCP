@@ -70,7 +70,7 @@ tool_registry = {
     "create_event": (calendar.create_event, CreateEventArgs),
     "list_events": (calendar.list_events, ListEventsArgs),
     "create_task": (infolog.create_task, CreateTaskArgs),
-    "get_about_us_info": (knowledge.get_about_us_info, None),
+    "get_company_info": (knowledge.get_company_info, None),
 }
 
 
