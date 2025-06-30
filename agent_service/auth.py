@@ -18,14 +18,14 @@ EGROUPWARE_BASE_URL = os.getenv("EGROUPWARE_BASE_URL")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
+# Create a JWT token with an expiration time
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-
+# Verify EGroupware credentials by making a request to the addressbook endpoint
 def verify_egroupware_credentials(username: str, password: str) -> bool:
     if not EGROUPWARE_BASE_URL:
         raise ValueError("EGROUPWARE_BASE_URL is not set.")
@@ -37,7 +37,7 @@ def verify_egroupware_credentials(username: str, password: str) -> bool:
     except requests.RequestException:
         return False
 
-
+# Authenticate user credentials and return a JWT token
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
