@@ -20,7 +20,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code for the tool server
 COPY ./tool_server ./tool_server
 
-COPY ./credentials.json ./credentials.json
 
 # Expose the port the app runs on
 EXPOSE 8001
