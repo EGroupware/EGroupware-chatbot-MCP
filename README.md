@@ -16,7 +16,7 @@ This microservices architecture makes the system more robust, scalable, and easi
   - **Address Book**: Create/search contacts.
   - **Calendar**: Create/list events.
   - **Task Management (InfoLog)**: Create tasks.
-  - **Knowledge Retrieval**: Fetches company info from a Google Doc.
+  - **Knowledge Retrieval**: Fetches company info from a  markdown file.
 - **Streaming Responses**: Chat responses are streamed in real-time for a smooth user experience.
 
 ## Prerequisites
