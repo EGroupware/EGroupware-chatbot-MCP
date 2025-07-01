@@ -160,18 +160,28 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
             "type": "function",
             "function": {
                 "name": "create_task",
-                "description": "Creates a new task in InfoLog.",
+                "description": "Creates a new task in the user's InfoLog. Requires a title and can optionally include a due date and a description.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string"},
-                        "due_date": {"type": "string", "description": "Due date in YYYY-MM-DD format."},
-                        "description": {"type": "string"}
+                        "title": {
+                            "type": "string",
+                            "description": "The title or subject of the task."
+                        },
+                        "due_date": {
+                            "type": "string",
+                            "description": "The due date for the task, in 'YYYY-MM-DD' format."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A detailed description of the task."
+                        }
                     },
                     "required": ["title"],
                 },
             },
         },
+
         {
             "type": "function",
             "function": {
