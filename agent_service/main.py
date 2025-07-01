@@ -106,6 +106,42 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
         {
             "type": "function",
             "function": {
+                "name": "send_email",
+                "description": "Sends an email to one or more recipients. Requires a subject and a list of 'to' addresses. Can optionally include a body, cc, and bcc.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "to": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "A list of primary recipient email addresses."
+                        },
+                        "subject": {
+                            "type": "string",
+                            "description": "The subject line of the email."
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "The plain text body content of the email."
+                        },
+                        "cc": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "A list of CC recipient email addresses."
+                        },
+                        "bcc": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "A list of BCC recipient email addresses."
+                        }
+                    },
+                    "required": ["to", "subject"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "create_event",
                 "description": "Schedules a new event in the user's calendar. Requires a title, start time, and end time. Can optionally include a description, location, and a list of attendee emails.",
                 "parameters": {
