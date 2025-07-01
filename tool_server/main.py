@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
 from typing import Any, Dict, Optional , List
 
-from .tools import addressbook, calendar, infolog, knowledge
+from .tools import addressbook, calendar, infolog, knowledge, mail
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -58,6 +58,16 @@ class CreateTaskArgs(BaseModel):
     due_date: Optional[str] = None
     description: Optional[str] = None
 
+class SendEmailArgs(BaseModel):
+    to: List[str]
+    subject: str
+    body: Optional[str] = None
+    cc: Optional[List[str]] = None
+    bcc: Optional[List[str]] = None
+
+class ListEmailsArgs(BaseModel):
+    query: Optional[str] = None
+    limit: Optional[int] = 10
 
 class ExecuteToolRequest(BaseModel):
     auth: AuthPayload
@@ -70,6 +80,7 @@ tool_registry = {
     "create_event": (calendar.create_event, CreateEventArgs),
     "list_events": (calendar.list_events, ListEventsArgs),
     "create_task": (infolog.create_task, CreateTaskArgs),
+    "send_email": (mail.send_email, SendEmailArgs),
     "get_company_info": (knowledge.get_company_info, None),
 }
 
@@ -95,7 +106,7 @@ def execute_tool(tool_name: str, request: ExecuteToolRequest):
 
     try:
         user_auth = (request.auth.username, request.auth.password)
-        if tool_name == "get_about_us_info":
+        if tool_name == "get_company_info":
             result = tool_function()
         else:
             result = tool_function(base_url=EGROUPWARE_BASE_URL, auth=user_auth, **args_dict)
