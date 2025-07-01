@@ -1,35 +1,60 @@
+# tool_server/tools/infolog.py
+
 import requests
 import json
-from datetime import datetime
 from typing import Optional
+import re
 
-def create_task(base_url: str, auth: tuple, title: str,
-                due_date: Optional[str] = None, description: Optional[str] = None):
-    """
-    Creates a new task in the EGroupware InfoLog.
-    Required: title.
-    Optional: due_date (YYYY-MM-DD), description.
-    """
-    url = f"{base_url}/infolog/"
 
+def create_task(
+        base_url: str,
+        auth: tuple,
+        title: str,
+        due_date: Optional[str] = None,  # Expects YYYY-MM-DD format from the user
+        description: Optional[str] = None
+):
+    """
+    Creates a new task in the user's personal InfoLog using the EGroupware REST API.
+    """
+    username = auth[0]
+    # Dynamically construct the correct URL for the authenticated user's InfoLog
+    user_specific_base_url = re.sub(r'/(sysop|[^/]+)$', f'/{username}', base_url.rstrip('/'))
+    url = f"{user_specific_base_url}/infolog/"
+
+    # --- Construct the payload based STRICTLY on the REST API documentation ---
     payload = {
-        "@type": "Task",
         "title": title,
-        "created": datetime.utcnow().isoformat() + "Z",
-        "status": "confirmed",
-        "progress": "needs-action",
-        "egroupware.org:type": "task" # Custom field for EGroupware
+        "status": "needs-action"  # Set a sensible default for all new tasks
     }
-    if due_date:
-        payload["due"] = f"{due_date}T23:59:59" # Assume end of day
+
+    # Add optional fields only if they have values
     if description:
         payload["description"] = description
 
+    if due_date:
+        # The API expects a 'due' field with a date and time.
+        # If the user only provides a date, we'll default to the end of that day.
+        payload["due"] = f"{due_date} 23:59:59"
+
     try:
-        response = requests.post(url, auth=auth, json=payload, headers={"Content-Type": "application/json"})
+        response = requests.post(
+            url, auth=auth, json=payload, headers={"Content-Type": "application/json"}
+        )
         response.raise_for_status()
-        return f"Successfully created task: '{title}'."
+
+        # Construct a clear success message for the LLM
+        success_message = f"Task '{title}' was created successfully in your InfoLog."
+        if due_date:
+            success_message += f" It is due on {due_date}."
+
+        return json.dumps({
+            "status": "success",
+            "message": success_message,
+            "created_task_details": payload
+        })
     except requests.exceptions.HTTPError as e:
-        return f"Error creating task: {e.response.status_code} - {e.response.text}"
-    except Exception as e:
-        return f"An unexpected error occurred: {str(e)}"
+        error_text = e.response.text
+        return json.dumps({
+            "status": "error",
+            "message": f"Failed to create the task. The server responded with an error: {error_text}"
+        })
