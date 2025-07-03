@@ -1,5 +1,3 @@
-# tool_server/tools/infolog.py
-
 import requests
 import json
 from typing import Optional
@@ -16,10 +14,7 @@ def create_task(
     """
     Creates a new task in the user's personal InfoLog using the EGroupware REST API.
     """
-    username = auth[0]
-    # Dynamically construct the correct URL for the authenticated user's InfoLog
-    user_specific_base_url = re.sub(r'/(sysop|[^/]+)$', f'/{username}', base_url.rstrip('/'))
-    url = f"{user_specific_base_url}/infolog/"
+    url = f"{base_url}/infolog/"
 
     # --- Construct the payload based STRICTLY on the REST API documentation ---
     payload = {
