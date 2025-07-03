@@ -117,5 +117,3 @@ python -m tool_server.main
 - `static/`: Web interface files
 - `docker-compose.yml`: Docker services configuration
 - `.env`: Environment configuration
-
-
