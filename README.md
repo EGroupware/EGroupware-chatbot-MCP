@@ -23,7 +23,7 @@ This microservices architecture makes the system more robust, scalable, and easi
 
 - Docker and Docker Compose
 - An EGroupware instance with valid credentials
-- IONOS API key for AI services or an OpenAI API key (optional)
+- IONOS API key for AI services or an OpenAI API key  (optional)
 
 
 ## Quick Start with Docker
@@ -36,7 +36,7 @@ cd egroupware-MCP
 
 2. Set up environment variables:
 ```bash
-cp .env.example .env
+cp .env.example .env 
 ```
 Edit the `.env` file and fill in your credentials:
 - `IONOS_API_KEY`: Your IONOS API key
