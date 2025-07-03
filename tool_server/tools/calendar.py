@@ -1,9 +1,16 @@
+import os
 import requests
 import json
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
-import re
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
+
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 
 
 def create_event(
@@ -24,18 +31,15 @@ def create_event(
     """
     username = auth[0]
     # Dynamically construct the correct URL for the authenticated user's calendar.
-    user_specific_base_url = re.sub(r'/(sysop|[^/]+)$', f'/{username}', base_url.rstrip('/'))
-    url = f"{user_specific_base_url}/calendar/"
-
+    url = f"{base_url}/calendar/"
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     # --- Participant Block Construction ---
     participants = {}
     participant_key_counter = 1
 
-    # 1. Add the event owner.
-    # IMPORTANT: The generated email must be a valid, existing email for the user in EGroupware.
-    owner_email = f"{username}@amir.egroupware.net"  # Adjust this format if needed.
+    # 1. Add the owner of the event (the user creating it).
+    owner_email = EMAIL_ADDRESS   # This should be the email address of the authenticated user.
 
     participants[str(participant_key_counter)] = {
         "@type": "Participant",
