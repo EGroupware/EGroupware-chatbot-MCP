@@ -26,6 +26,7 @@ This microservices architecture makes the system more robust, scalable, and easi
 - IONOS API key for AI services or an OpenAI API key (optional)
 
 
+
 ## Quick Start with Docker
 
 1. Clone the repository:
