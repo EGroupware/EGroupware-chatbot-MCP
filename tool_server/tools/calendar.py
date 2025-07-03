@@ -39,7 +39,7 @@ def create_event(
     participant_key_counter = 1
 
     # 1. Add the owner of the event (the user creating it).
-    owner_email = EMAIL_ADDRESS   # This should be the email address of the authenticated user.
+    owner_email = f"{EMAIL_ADDRESS}"   # This should be the email address of the authenticated user.
 
     participants[str(participant_key_counter)] = {
         "@type": "Participant",
