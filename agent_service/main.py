@@ -143,7 +143,7 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
             "type": "function",
             "function": {
                 "name": "create_event",
-                "description": "Schedules a new event in the user's calendar. Requires a title, start time, and end time. Can optionally include a description, location, and a list of attendee emails.",
+                "description": "Schedules a new event in the user's calendar. Requires a title, start time, and end time. Can optionally include a timezone, description, location, and a list of attendee emails.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -158,6 +158,10 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
                         "end_datetime": {
                             "type": "string",
                             "description": "The end date and time in 'YYYY-MM-DD HH:MM:SS' format. The AI must calculate this if the user provides a duration (e.g., 'for 90 minutes')."
+                        },
+                        "time_zone": {
+                            "type": "string",
+                            "description": "The IANA Time Zone for the event (e.g., 'Europe/Berlin', 'America/New_York'). If the user doesn't specify one, you should ask or infer it. Defaults to 'UTC' if not provided."
                         },
                         "description": {
                             "type": "string",
