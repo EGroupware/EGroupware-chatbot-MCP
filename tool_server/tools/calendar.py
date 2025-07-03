@@ -1,16 +1,9 @@
-import os
 import requests
 import json
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 
-# Load environment variables from .env file
-from dotenv import load_dotenv
-load_dotenv()
-
-
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 
 
 def create_event(
@@ -19,7 +12,7 @@ def create_event(
         title: str,
         start_datetime: str,
         duration_minutes: int = 60,
-        time_zone: str = "UTC",
+        time_zone: str = "CEST",
         description: Optional[str] = None,
         location: Optional[str] = None,
         attendee_emails: Optional[List[str]] = None,
@@ -29,29 +22,15 @@ def create_event(
     Schedules a new event in the user's personal EGroupware calendar,
     including all specified details and participants.
     """
-    username = auth[0]
     # Dynamically construct the correct URL for the authenticated user's calendar.
     url = f"{base_url}/calendar/"
+
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     # --- Participant Block Construction ---
     participants = {}
     participant_key_counter = 1
 
-    # 1. Add the owner of the event (the user creating it).
-    owner_email = f"{EMAIL_ADDRESS}"   # This should be the email address of the authenticated user.
-
-    participants[str(participant_key_counter)] = {
-        "@type": "Participant",
-        "name": username.capitalize(),
-        "email": owner_email,
-        "kind": "individual",
-        "roles": {"owner": True, "chair": True},
-        "participationStatus": "accepted"
-    }
-    participant_key_counter += 1
-
-    # 2. Add other attendees from the provided email list.
     if attendee_emails:
         for email in attendee_emails:
             attendee_name = email.split('@')[0].replace('.', ' ').title()
