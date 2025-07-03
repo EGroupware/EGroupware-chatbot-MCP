@@ -65,7 +65,7 @@ def search_contacts(base_url: str, auth: tuple, query: str):
             "status": "success",
             "found": True,
             "count": len(results),
-            "contacts": results[:5]  # Return a sample of the data
+            "contacts": results[:5]  # Limit to first 5 results for brevity
         })
     except requests.exceptions.HTTPError as e:
         return json.dumps({"status": "error",
