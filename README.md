@@ -1,4 +1,4 @@
-# EGroupware AI Chatbot (MCP Architecture)
+# EGroupware AI  (MCP Architecture)
 
 This project provides a self-hosted AI chatbot designed to interact with an EGroupware instance, refactored into a true Model-Context-Protocol (MCP) inspired architecture. It features two distinct microservices:
 
@@ -31,7 +31,7 @@ This microservices architecture makes the system more robust, scalable, and easi
 1. Clone the repository:
 ```bash
 git clone https://github.com/EGroupware/EGroupware-chatbot-MCP
-cd egroupware-chatbot-MCP
+cd egroupware-MCP
 ```
 
 2. Set up environment variables:
