@@ -23,14 +23,14 @@ This microservices architecture makes the system more robust, scalable, and easi
 
 - Docker and Docker Compose
 - An EGroupware instance with valid credentials
-- IONOS API key for AI services
-- OpenAI API key (optional, for fallback)
+- IONOS API key for AI services or an OpenAI API key (optional)
+
 
 ## Quick Start with Docker
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/amirdhs/EGroupware-chatbot-MCP.git
+git clone https://github.com/EGroupware/EGroupware-chatbot-MCP
 cd egroupware-chatbot-MCP
 ```
 
