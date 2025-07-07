@@ -21,6 +21,19 @@ chat_histories = {}
 TOOL_SERVER_URL = os.getenv("TOOL_SERVER_URL")
 
 
+@app.post("/configure")
+async def configure_environment(config: schemas.EnvironmentConfig):
+    # Set environment variables
+    os.environ["EGROUPWARE_URL"] = config.egroupware_url
+    os.environ["AI_PROVIDER"] = config.ai_provider
+    os.environ["AI_API_KEY"] = config.ai_api_key
+
+    if config.ionos_base_url:
+        os.environ["IONOS_BASE_URL"] = config.ionos_base_url
+
+    return {"status": "success", "message": "Configuration updated successfully"}
+
+
 def call_tool_server(tool_name: str, args: dict, user_credentials: schemas.TokenData):
     if not TOOL_SERVER_URL:
         return "Error: Tool Server URL is not configured."
