@@ -3,43 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - EGroupware Chatbot</title>
+    <title>EGroupware MCP Login</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="login-container">
-        <!-- New Theme Toggle Button for the Login Page -->
-        <button id="theme-toggle" class="login-theme-toggle"></button>
-
-        <div class="login-header">
-            <h2>EGroupware AI Assistant</h2>
-            <p>Please enter your configuration and credentials</p>
-        </div>
+        <h1>EGroupware MCP Login</h1>
         <form id="login-form">
-            <div class="config-section">
-                <h3>EGroupware Configuration</h3>
-                <input type="url" id="egroupware-url" placeholder="EGroupware URL" required>
+            <div class="form-group">
+                <label for="egw-url">EGroupware URL:</label>
+                <input type="url" id="egw-url" name="egw-url" required placeholder="https://your-egroupware.com">
             </div>
 
-            <div class="config-section">
-                <h3>AI Configuration</h3>
-                <select id="ai-provider" required>
-                    <option value="">Select AI Provider</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="ionos">IONOS</option>
-                </select>
-                <input type="password" id="ai-api-key" placeholder="AI API Key" required>
-                <input type="url" id="ionos-base-url" placeholder="IONOS Base URL" class="hidden ionos-field">
+            <div class="form-group">
+                <label for="ai-key">AI API Key:</label>
+                <input type="password" id="ai-key" name="ai-key" required placeholder="sk-... or your IONOS key">
+                <small>Enter your OpenAI API key or IONOS API key</small>
             </div>
 
-            <div class="config-section">
-                <h3>Login Credentials</h3>
-                <input type="text" id="username" placeholder="EGroupware Username" required autocomplete="username">
-                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <div class="form-group ionos-url-group" style="display: none;">
+                <label for="ionos-base-url">IONOS Base URL:</label>
+                <input type="url" id="ionos-base-url" name="ionos-base-url"
+                    placeholder="https://openai.inference.de-txl.ionos.com/v1"
+                    value="https://openai.inference.de-txl.ionos.com/v1">
+                <small>Required when using IONOS API key</small>
             </div>
+
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div id="error-message" class="error-message"></div>
 
             <button type="submit">Login</button>
-            <p id="error-message" class="error-message"></p>
         </form>
     </div>
     <script src="/static/script.js"></script>
