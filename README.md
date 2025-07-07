@@ -102,14 +102,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run services separately:
-```bash
-# Terminal 1: Run Agent Service
-python -m agent_service.main
 
-# Terminal 2: Run Tool Server
-python -m tool_server.main
-```
 
 ### Project Structure
 
@@ -118,3 +111,4 @@ python -m tool_server.main
 - `static/`: Web interface files
 - `docker-compose.yml`: Docker services configuration
 - `.env`: Environment configuration
+
