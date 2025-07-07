@@ -6,11 +6,21 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: str | None = None
-    pwd: str | None = None
-
-class EnvironmentConfig(BaseModel):
-    egroupware_url: str
-    ai_provider: str
-    ai_api_key: str
+    username: str
+    password: Optional[str] = None
+    egw_url: str
+    ai_key: str
+    is_ionos: bool
     ionos_base_url: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    egw_url: str
+    ai_key: str
+    ionos_base_url: Optional[str] = None
+    username: str
+    password: str
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+    admin_key: str
