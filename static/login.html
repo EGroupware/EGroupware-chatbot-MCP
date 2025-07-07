@@ -13,11 +13,31 @@
 
         <div class="login-header">
             <h2>EGroupware AI Assistant</h2>
-            <p>Please log in with your EGroupware credentials</p>
+            <p>Please enter your configuration and credentials</p>
         </div>
         <form id="login-form">
-            <input type="text" id="username" placeholder="EGroupware Username" required autocomplete="username">
-            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <div class="config-section">
+                <h3>EGroupware Configuration</h3>
+                <input type="url" id="egroupware-url" placeholder="EGroupware URL" required>
+            </div>
+
+            <div class="config-section">
+                <h3>AI Configuration</h3>
+                <select id="ai-provider" required>
+                    <option value="">Select AI Provider</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="ionos">IONOS</option>
+                </select>
+                <input type="password" id="ai-api-key" placeholder="AI API Key" required>
+                <input type="url" id="ionos-base-url" placeholder="IONOS Base URL" class="hidden ionos-field">
+            </div>
+
+            <div class="config-section">
+                <h3>Login Credentials</h3>
+                <input type="text" id="username" placeholder="EGroupware Username" required autocomplete="username">
+                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            </div>
+
             <button type="submit">Login</button>
             <p id="error-message" class="error-message"></p>
         </form>
