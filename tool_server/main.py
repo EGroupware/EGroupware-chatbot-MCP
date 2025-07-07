@@ -4,12 +4,9 @@ from pydantic import BaseModel, ValidationError
 from typing import Any, Dict, Optional , List
 
 from .tools import addressbook, calendar, infolog, knowledge, mail
+# We still load env variables as fallback
 from dotenv import load_dotenv
 load_dotenv()
-
-
-import os
-from fastapi import FastAPI, HTTPException
 
 app = FastAPI(
     title="EGroupware Tool Server",
@@ -17,12 +14,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# This is now a fallback only
 EGROUPWARE_BASE_URL = os.getenv("EGROUPWARE_BASE_URL")
 
 
 class AuthPayload(BaseModel):
     username: str
     password: str
+    egw_url: Optional[str] = None  # Added to accept URL from agent service
 
 
 class CreateContactArgs(BaseModel):
@@ -87,8 +86,11 @@ tool_registry = {
 
 @app.post("/execute/{tool_name}")
 def execute_tool(tool_name: str, request: ExecuteToolRequest):
-    if not EGROUPWARE_BASE_URL:
-        raise HTTPException(status_code=500, detail="EGROUPWARE_BASE_URL not configured on the Tool Server.")
+    # Use the URL provided in the auth payload if available, otherwise fall back to env variable
+    base_url = request.auth.egw_url if hasattr(request.auth, "egw_url") and request.auth.egw_url else EGROUPWARE_BASE_URL
+
+    if not base_url:
+        raise HTTPException(status_code=500, detail="EGROUPWARE_BASE_URL not configured on the Tool Server or in the request.")
 
     if tool_name not in tool_registry:
         raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found.")
@@ -109,7 +111,7 @@ def execute_tool(tool_name: str, request: ExecuteToolRequest):
         if tool_name == "get_company_info":
             result = tool_function()
         else:
-            result = tool_function(base_url=EGROUPWARE_BASE_URL, auth=user_auth, **args_dict)
+            result = tool_function(base_url=base_url, auth=user_auth, **args_dict)
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500,
