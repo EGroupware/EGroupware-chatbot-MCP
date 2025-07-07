@@ -22,71 +22,190 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function setupLoginPage() {
     const loginForm = document.getElementById('login-form');
-    const aiProvider = document.getElementById('ai-provider');
-    const ionosBaseUrlField = document.getElementById('ionos-base-url');
-
     if (!loginForm) return;
 
-    // Handle AI provider change
-    aiProvider.addEventListener('change', (e) => {
-        if (e.target.value === 'ionos') {
-            ionosBaseUrlField.classList.remove('hidden');
-            ionosBaseUrlField.required = true;
-        } else {
-            ionosBaseUrlField.classList.add('hidden');
-            ionosBaseUrlField.required = false;
+    // Get form elements
+    const egwUrlInput = document.getElementById('egw-url');
+    const aiKeyInput = document.getElementById('ai-key');
+    const ionosUrlGroup = document.querySelector('.ionos-url-group');
+    const ionosBaseUrlInput = document.getElementById('ionos-base-url');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    const errorMessage = document.getElementById('error-message');
+
+    // Validation state
+    let validations = {
+        egwUrl: false,
+        aiKey: false,
+        username: false,
+        password: false
+    };
+
+    function updateSubmitButton() {
+        const allValid = Object.values(validations).every(v => v);
+        submitButton.disabled = !allValid;
+    }
+
+    // Add validation indicators next to each input
+    function createValidationIndicator(input) {
+        const indicator = document.createElement('span');
+        indicator.className = 'validation-indicator';
+        input.parentNode.appendChild(indicator);
+        return indicator;
+    }
+
+    const indicators = {
+        egwUrl: createValidationIndicator(egwUrlInput),
+        aiKey: createValidationIndicator(aiKeyInput),
+        username: createValidationIndicator(usernameInput),
+        password: createValidationIndicator(passwordInput)
+    };
+
+    function updateIndicator(indicator, isValid, message = '') {
+        indicator.className = 'validation-indicator ' + (isValid ? 'valid' : 'invalid');
+        indicator.title = message;
+    }
+
+    // Validate EGroupware URL
+    let egwUrlTimeout;
+    egwUrlInput.addEventListener('input', () => {
+        clearTimeout(egwUrlTimeout);
+        const indicator = indicators.egwUrl;
+        indicator.className = 'validation-indicator validating';
+
+        egwUrlTimeout = setTimeout(async () => {
+            const url = egwUrlInput.value.trim();
+            if (!url) {
+                validations.egwUrl = false;
+                updateIndicator(indicator, false, 'EGroupware URL is required');
+                updateSubmitButton();
+                return;
+            }
+
+            try {
+                const response = await fetch('/validate/egroupware-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await response.json();
+                validations.egwUrl = data.valid;
+                updateIndicator(indicator, data.valid, data.valid ? 'Valid EGroupware URL' : data.detail);
+            } catch (error) {
+                validations.egwUrl = false;
+                updateIndicator(indicator, false, 'Error validating URL');
+            }
+            updateSubmitButton();
+        }, 500);
+    });
+
+    // Validate AI API Key
+    let aiKeyTimeout;
+    aiKeyInput.addEventListener('input', () => {
+        clearTimeout(aiKeyTimeout);
+        const indicator = indicators.aiKey;
+        indicator.className = 'validation-indicator validating';
+
+        // Show/hide IONOS URL field based on key format
+        const isOpenAiKey = aiKeyInput.value.trim().startsWith('sk-');
+        ionosUrlGroup.style.display = isOpenAiKey ? 'none' : 'block';
+
+        aiKeyTimeout = setTimeout(async () => {
+            const apiKey = aiKeyInput.value.trim();
+            if (!apiKey) {
+                validations.aiKey = false;
+                updateIndicator(indicator, false, 'AI API key is required');
+                updateSubmitButton();
+                return;
+            }
+
+            try {
+                const payload = {
+                    api_key: apiKey,
+                    ionos_base_url: isOpenAiKey ? undefined : ionosBaseUrlInput.value
+                };
+
+                const response = await fetch('/validate/ai-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                validations.aiKey = data.valid;
+                updateIndicator(indicator, data.valid,
+                    data.valid ? `Valid ${isOpenAiKey ? 'OpenAI' : 'IONOS'} API key` : data.detail);
+
+                // If it's an invalid IONOS key that needs a base URL, show the field
+                if (!data.valid && data.is_ionos) {
+                    ionosUrlGroup.style.display = 'block';
+                }
+            } catch (error) {
+                validations.aiKey = false;
+                updateIndicator(indicator, false, 'Error validating API key');
+            }
+            updateSubmitButton();
+        }, 500);
+    });
+
+    // Revalidate when IONOS base URL changes
+    ionosBaseUrlInput.addEventListener('input', () => {
+        if (!aiKeyInput.value.trim().startsWith('sk-')) {
+            // Trigger AI key validation to check with new base URL
+            aiKeyInput.dispatchEvent(new Event('input'));
         }
+    });
+
+    // Simple validation for username and password
+    usernameInput.addEventListener('input', () => {
+        const value = usernameInput.value.trim();
+        validations.username = value.length > 0;
+        updateIndicator(indicators.username, validations.username,
+            validations.username ? 'Username provided' : 'Username is required');
+        updateSubmitButton();
+    });
+
+    passwordInput.addEventListener('input', () => {
+        const value = passwordInput.value.trim();
+        validations.password = value.length > 0;
+        updateIndicator(indicators.password, validations.password,
+            validations.password ? 'Password provided' : 'Password is required');
+        updateSubmitButton();
     });
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = {
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value,
-            egroupwareUrl: document.getElementById('egroupware-url').value,
-            aiProvider: document.getElementById('ai-provider').value,
-            aiApiKey: document.getElementById('ai-api-key').value,
-            ionosBaseUrl: document.getElementById('ionos-base-url').value
-        };
-        const errorMessage = document.getElementById('error-message');
+        if (!Object.values(validations).every(v => v)) {
+            errorMessage.textContent = 'Please fix validation errors before submitting';
+            return;
+        }
+
         errorMessage.textContent = 'Logging in...';
 
         try {
-            // First set the environment configuration
-            const configResponse = await fetch('/configure', {
+            const isOpenAiKey = aiKeyInput.value.trim().startsWith('sk-');
+            const response = await fetch('/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    egroupware_url: formData.egroupwareUrl,
-                    ai_provider: formData.aiProvider,
-                    ai_api_key: formData.aiApiKey,
-                    ionos_base_url: formData.ionosBaseUrl
+                    egw_url: egwUrlInput.value.trim(),
+                    ai_key: aiKeyInput.value.trim(),
+                    ionos_base_url: isOpenAiKey ? undefined : ionosBaseUrlInput.value.trim(),
+                    username: usernameInput.value.trim(),
+                    password: passwordInput.value.trim()
                 })
             });
-
-            if (!configResponse.ok) {
-                throw new Error('Failed to set configuration');
-            }
-
-            // Then proceed with login
-            const loginResponse = await fetch('/token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    username: formData.username,
-                    password: formData.password
-                })
-            });
-
-            const data = await loginResponse.json();
-            if (!loginResponse.ok) throw new Error(data.detail || 'Login failed.');
-
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || 'Login failed.');
             localStorage.setItem('accessToken', data.access_token);
             window.location.href = '/chat-ui';
         } catch (error) {
             errorMessage.textContent = error.message;
         }
     });
+
+    // Initially disable submit button
+    submitButton.disabled = true;
 }
 
 function setupChatPage() {
