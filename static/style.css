@@ -52,33 +52,55 @@ body {
 
 /* --- Login Page Specifics --- */
 .login-container {
-    padding: 40px;
+    padding: 50px;
     text-align: center;
     max-width: 500px;
+}
+.login-container h1 {
+    margin-bottom: 30px;
+    color: var(--text-primary);
 }
 .login-header p {
     color: var(--text-secondary);
     margin-bottom: 30px;
 }
-#login-form input,
-#login-form select {
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+    position: relative;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+.form-group input {
     width: 100%;
     padding: 12px;
-    margin-bottom: 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 16px;
     background-color: var(--bg-body);
     color: var(--text-primary);
     box-sizing: border-box;
+    padding-right: 40px; /* Added space for validation indicator */
 }
-#login-form select {
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 1em;
-    padding-right: 40px;
+.form-group small {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+#login-form input {
+    width: calc(100% - 30px);
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 16px;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
 }
 #login-form button {
     width: 100%;
@@ -86,11 +108,12 @@ body {
     background-color: var(--accent-color);
     color: var(--user-message-text);
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
+    margin-top: 10px;
 }
 #login-form button:hover {
     background-color: var(--accent-color-hover);
@@ -100,16 +123,59 @@ body {
     margin-top: 15px;
     min-height: 20px;
     font-weight: 500;
+    text-align: center;
 }
-.config-section {
-    margin-bottom: 30px;
-    text-align: left;
+
+/* --- Form Field Validation Indicators --- */
+.validation-indicator {
+    position: absolute;
+    right: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
 }
-.config-section h3 {
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 15px;
-    font-weight: 600;
+
+.validation-indicator::before {
+    font-family: Arial, sans-serif;
+}
+
+.validation-indicator.valid {
+    background-color: #10b981;
+    color: white;
+}
+
+.validation-indicator.valid::before {
+    content: "✓";
+}
+
+.validation-indicator.invalid {
+    background-color: #ef4444;
+    color: white;
+}
+
+.validation-indicator.invalid::before {
+    content: "✗";
+}
+
+.validation-indicator.validating {
+    background-color: #f59e0b;
+    animation: spin 1s linear infinite;
+}
+
+.validation-indicator.validating::before {
+    content: "⟳";
+    color: white;
+}
+
+@keyframes spin {
+    from { transform: translateY(-50%) rotate(0deg); }
+    to { transform: translateY(-50%) rotate(360deg); }
 }
 
 /* --- Chat Header --- */
@@ -240,6 +306,9 @@ body {
 #chat-form button:hover {
     background-color: var(--accent-color-hover);
 }
-.hidden {
-    display: none;
+
+/* Disable button styles */
+#login-form button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
 }
