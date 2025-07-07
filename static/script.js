@@ -21,25 +21,66 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function setupLoginPage() {
-    // This function remains unchanged.
     const loginForm = document.getElementById('login-form');
+    const aiProvider = document.getElementById('ai-provider');
+    const ionosBaseUrlField = document.getElementById('ionos-base-url');
+
     if (!loginForm) return;
+
+    // Handle AI provider change
+    aiProvider.addEventListener('change', (e) => {
+        if (e.target.value === 'ionos') {
+            ionosBaseUrlField.classList.remove('hidden');
+            ionosBaseUrlField.required = true;
+        } else {
+            ionosBaseUrlField.classList.add('hidden');
+            ionosBaseUrlField.required = false;
+        }
+    });
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const formData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            egroupwareUrl: document.getElementById('egroupware-url').value,
+            aiProvider: document.getElementById('ai-provider').value,
+            aiApiKey: document.getElementById('ai-api-key').value,
+            ionosBaseUrl: document.getElementById('ionos-base-url').value
+        };
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = 'Logging in...';
 
         try {
-            const response = await fetch('/token', {
+            // First set the environment configuration
+            const configResponse = await fetch('/configure', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    egroupware_url: formData.egroupwareUrl,
+                    ai_provider: formData.aiProvider,
+                    ai_api_key: formData.aiApiKey,
+                    ionos_base_url: formData.ionosBaseUrl
+                })
+            });
+
+            if (!configResponse.ok) {
+                throw new Error('Failed to set configuration');
+            }
+
+            // Then proceed with login
+            const loginResponse = await fetch('/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ username, password })
+                body: new URLSearchParams({
+                    username: formData.username,
+                    password: formData.password
+                })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.detail || 'Login failed.');
+
+            const data = await loginResponse.json();
+            if (!loginResponse.ok) throw new Error(data.detail || 'Login failed.');
+
             localStorage.setItem('accessToken', data.access_token);
             window.location.href = '/chat-ui';
         } catch (error) {
