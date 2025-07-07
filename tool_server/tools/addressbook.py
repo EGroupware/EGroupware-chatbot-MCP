@@ -57,15 +57,14 @@ def search_contacts(base_url: str, auth: tuple, query: str):
 
         results = data.get("result", [])
         if not results:
-            # --- IMPROVED RETURN ---
             return json.dumps({"status": "success", "found": False, "message": "No contacts found matching the query."})
 
-        # --- IMPROVED RETURN ---
+
         return json.dumps({
             "status": "success",
             "found": True,
             "count": len(results),
-            "contacts": results[:5]  # Limit to first 5 results for brevity
+            "contacts": results[:5]  # Return a sample of the data
         })
     except requests.exceptions.HTTPError as e:
         return json.dumps({"status": "error",
