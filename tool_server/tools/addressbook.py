@@ -44,28 +44,52 @@ def create_contact(base_url: str, auth: tuple, full_name: str, email: str,
             "details": error_details
         })
 
+
+
+
 def search_contacts(base_url: str, auth: tuple, query: str):
     """
-    Searches for existing contacts by name or email.
+    Fetches all contacts and searches locally by full name or email.
     """
     url = f"{base_url}/addressbook/"
-    params = {"filters[search]": query, "props[]": ["fullName", "email"]}
+    headers = {"Accept": "application/json"}
+
     try:
-        response = requests.get(url, auth=auth, params=params, headers={"Accept": "application/json"})
+        response = requests.get(url, auth=auth, headers=headers)
         response.raise_for_status()
         data = response.json()
+        responses = data.get("responses", {})
 
-        results = data.get("result", [])
-        if not results:
-            return json.dumps({"status": "success", "found": False, "message": "No contacts found matching the query."})
+        # Filter contacts by name or email
+        matches = []
+        for _, contact in responses.items():
+            name = contact.get("name", {})
+            full_name = name.get("full", "").lower()
+            last_name = name.get("n-family", "").lower()
+            emails = contact.get("emails", [])
 
+            if (query.lower() in full_name or
+                query.lower() in last_name or
+                any(query.lower() in e.get("value", "").lower() for e in emails)):
+                matches.append(contact)
+
+        if not matches:
+            return json.dumps({
+                "status": "success",
+                "found": False,
+                "message": "No contacts found matching the query."
+            })
 
         return json.dumps({
             "status": "success",
             "found": True,
-            "count": len(results),
-            "contacts": results[:5]  # Return a sample of the data
+            "count": len(matches),
+            "contacts": matches[:5]
         })
+
     except requests.exceptions.HTTPError as e:
-        return json.dumps({"status": "error",
-                           "message": f"Failed to search contacts. Server responded with status {e.response.status_code}."})
+        return json.dumps({
+            "status": "error",
+            "message": f"Failed to search contacts. Server responded with status {e.response.status_code}."
+        })
+
