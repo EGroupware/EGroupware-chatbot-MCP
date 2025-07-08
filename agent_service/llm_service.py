@@ -15,7 +15,7 @@ def get_streaming_chat_response(messages, tools, current_user_config):
 
     try:
         return client.chat.completions.create(
-            model="gpt-4" if is_openai else "meta-llama/Llama-3.3-70B-Instruct",
+            model="gpt-3.5-turbo" if is_openai else "meta-llama/Llama-3.3-70B-Instruct",
             messages=messages,
             tools=tools,
             tool_choice="auto",
