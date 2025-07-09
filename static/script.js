@@ -25,6 +25,7 @@ function setupLoginPage() {
     if (!loginForm) return;
 
     // Get form elements
+    const aiModelSelect = document.getElementById('ai-model');
     const egwUrlInput = document.getElementById('egw-url');
     const aiKeyInput = document.getElementById('ai-key');
     const ionosUrlGroup = document.querySelector('.ionos-url-group');
@@ -33,6 +34,7 @@ function setupLoginPage() {
     const passwordInput = document.getElementById('password');
     const submitButton = loginForm.querySelector('button[type="submit"]');
     const errorMessage = document.getElementById('error-message');
+    const apiKeyHint = document.getElementById('api-key-hint');
 
     // Validation state
     let validations = {
@@ -100,63 +102,62 @@ function setupLoginPage() {
         }, 500);
     });
 
-    // Validate AI API Key
-    let aiKeyTimeout;
-    aiKeyInput.addEventListener('input', () => {
-        clearTimeout(aiKeyTimeout);
-        const indicator = indicators.aiKey;
-        indicator.className = 'validation-indicator validating';
-
-        // Show/hide IONOS URL field based on key format
-        const isOpenAiKey = aiKeyInput.value.trim().startsWith('sk-');
-        ionosUrlGroup.style.display = isOpenAiKey ? 'none' : 'block';
-
-        aiKeyTimeout = setTimeout(async () => {
-            const apiKey = aiKeyInput.value.trim();
-            if (!apiKey) {
-                validations.aiKey = false;
-                updateIndicator(indicator, false, 'AI API key is required');
-                updateSubmitButton();
-                return;
-            }
-
-            try {
-                const payload = {
-                    api_key: apiKey,
-                    ionos_base_url: isOpenAiKey ? undefined : ionosBaseUrlInput.value
-                };
-
-                const response = await fetch('/validate/ai-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                validations.aiKey = data.valid;
-                updateIndicator(indicator, data.valid,
-                    data.valid ? `Valid ${isOpenAiKey ? 'OpenAI' : 'IONOS'} API key` : data.detail);
-
-                // If it's an invalid IONOS key that needs a base URL, show the field
-                if (!data.valid && data.is_ionos) {
-                    ionosUrlGroup.style.display = 'block';
-                }
-            } catch (error) {
-                validations.aiKey = false;
-                updateIndicator(indicator, false, 'Error validating API key');
-            }
-            updateSubmitButton();
-        }, 500);
-    });
-
-    // Revalidate when IONOS base URL changes
-    ionosBaseUrlInput.addEventListener('input', () => {
-        if (!aiKeyInput.value.trim().startsWith('sk-')) {
-            // Trigger AI key validation to check with new base URL
-            aiKeyInput.dispatchEvent(new Event('input'));
+    // Handle AI model selection
+    aiModelSelect.addEventListener('change', () => {
+        const selectedModel = aiModelSelect.value;
+        switch (selectedModel) {
+            case 'openai':
+                apiKeyHint.textContent = 'Enter your OpenAI API key (starts with sk-)';
+                ionosUrlGroup.style.display = 'none';
+                break;
+            case 'ionos':
+                apiKeyHint.textContent = 'Enter your IONOS API key';
+                ionosUrlGroup.style.display = 'block';
+                break;
+            case 'github':
+                apiKeyHint.textContent = 'Enter your GitHub API token (starts with gh)';
+                ionosUrlGroup.style.display = 'none';
+                break;
         }
+        // Clear the API key input when switching models
+        aiKeyInput.value = '';
+        validations.aiKey = false;
+        updateIndicator(indicators.aiKey, false);
+        updateSubmitButton();
     });
 
-    // Simple validation for username and password
+    // Validate AI Key based on selected model
+    aiKeyInput.addEventListener('input', () => {
+        const key = aiKeyInput.value.trim();
+        const selectedModel = aiModelSelect.value;
+        const indicator = indicators.aiKey;
+
+        if (!key) {
+            validations.aiKey = false;
+            updateIndicator(indicator, false, 'API key is required');
+        } else {
+            switch (selectedModel) {
+                case 'openai':
+                    validations.aiKey = key.startsWith('sk-');
+                    updateIndicator(indicator, validations.aiKey,
+                        validations.aiKey ? 'Valid OpenAI key format' : 'Invalid OpenAI key format');
+                    break;
+                case 'github':
+                    validations.aiKey = key.startsWith('gh');
+                    updateIndicator(indicator, validations.aiKey,
+                        validations.aiKey ? 'Valid GitHub token format' : 'Invalid GitHub token format');
+                    break;
+                case 'ionos':
+                    validations.aiKey = key.length > 0;
+                    updateIndicator(indicator, validations.aiKey,
+                        validations.aiKey ? 'Valid IONOS key format' : 'Invalid IONOS key format');
+                    break;
+            }
+        }
+        updateSubmitButton();
+    });
+
+    // Validate username and password
     usernameInput.addEventListener('input', () => {
         const value = usernameInput.value.trim();
         validations.username = value.length > 0;
@@ -183,14 +184,15 @@ function setupLoginPage() {
         errorMessage.textContent = 'Logging in...';
 
         try {
-            const isOpenAiKey = aiKeyInput.value.trim().startsWith('sk-');
+            const selectedModel = aiModelSelect.value;
             const response = await fetch('/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     egw_url: egwUrlInput.value.trim(),
                     ai_key: aiKeyInput.value.trim(),
-                    ionos_base_url: isOpenAiKey ? undefined : ionosBaseUrlInput.value.trim(),
+                    model_type: selectedModel,
+                    ionos_base_url: selectedModel === 'ionos' ? ionosBaseUrlInput.value.trim() : undefined,
                     username: usernameInput.value.trim(),
                     password: passwordInput.value.trim()
                 })
