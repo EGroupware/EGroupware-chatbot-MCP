@@ -1,15 +1,14 @@
 import json
 import os
-from datetime import timedelta, datetime, timezone
+
 from typing import AsyncGenerator, List
 import requests
 import openai
-from jose import JWTError, jwt
+
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, status, Security, Form, Cookie
-from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm, APIKeyHeader
+from fastapi import  FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import auth, llm_service, prompts, schemas
@@ -85,9 +84,13 @@ async def login_for_access_token(
             detail="Invalid EGroupware URL or credentials."
         )
 
-    # 2. Determine if it's an OpenAI or IONOS key
+    # 2. Determine the type of API key
     is_openai = login_data.ai_key.startswith('sk-')
-    if not is_openai and not login_data.ionos_base_url:
+    is_github = login_data.ai_key.startswith('gh')
+    is_ionos = not (is_openai or is_github)
+
+    # Validate IONOS configuration if needed
+    if is_ionos and not login_data.ionos_base_url:
         raise HTTPException(
             status_code=400,
             detail="IONOS base URL is required for IONOS API keys"
@@ -99,8 +102,8 @@ async def login_for_access_token(
         "pwd": login_data.password,
         "egw_url": login_data.egw_url,
         "ai_key": login_data.ai_key,
-        "is_ionos": not is_openai,
-        "ionos_base_url": login_data.ionos_base_url if not is_openai else None
+        "is_ionos": is_ionos,
+        "ionos_base_url": login_data.ionos_base_url if is_ionos else None
     }
 
     # 4. Create the token
@@ -363,63 +366,53 @@ async def validate_ai_key(data: dict):
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
 
-    # Check if it's an OpenAI key (starts with 'sk-')
+    # Check the type of API key
     is_openai = api_key.startswith("sk-")
+    is_github = api_key.startswith("gh")
+    is_ionos = not (is_openai or is_github)
 
     try:
         if is_openai:
             # Test OpenAI API key
             client = openai.OpenAI(api_key=api_key)
+            model = "gpt-3.5-turbo"
+        elif is_github:
+            # Test GitHub API key
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://models.github.ai/inference"
+            )
+            model = "openai/gpt-4o-mini"
         else:
             # Test IONOS API key
             if not ionos_base_url:
-                return {"valid": False, "detail": "IONOS base URL is required for IONOS API keys", "is_ionos": True}
+                return {
+                    "valid": False,
+                    "detail": "IONOS base URL is required for IONOS API keys",
+                    "is_ionos": True,
+                    "is_github": False
+                }
 
             client = openai.OpenAI(
                 api_key=api_key,
                 base_url=ionos_base_url
             )
+            model = "meta-llama/Llama-3.3-70B-Instruct"
 
         # Make a minimal API call to validate the key
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo" if is_openai else "meta-llama/Llama-3.3-70B-Instruct",
+            model=model,
             messages=[{"role": "user", "content": "test"}],
             max_tokens=1
         )
-        return {"valid": True, "is_ionos": not is_openai}
+        return {"valid": True, "is_ionos": is_ionos, "is_github": is_github}
     except Exception as e:
-        return {"valid": False, "detail": f"Invalid API key: {str(e)}", "is_ionos": not is_openai}
+        return {
+            "valid": False,
+            "detail": f"Invalid API key: {str(e)}",
+            "is_ionos": is_ionos,
+            "is_github": is_github
+        }
 
-
-# -------------------- NEW ADMIN ROUTES --------------------
-
-# Simple admin session management with cookies
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_root(admin_session: str = Cookie(None)):
-    """Root admin endpoint - redirects to login or dashboard based on session cookie"""
-    if admin_session == ADMIN_API_KEY:
-        return RedirectResponse(url="/admin/dashboard")
-    return RedirectResponse(url="/admin/login")
-
-
-@app.get("/admin/login", response_class=HTMLResponse)
-async def admin_login_page():
-    """Serve the admin login page"""
-    with open("static/admin_login.html") as f:
-        return HTMLResponse(content=f.read())
-
-
-@app.post("/admin/login")
-async def admin_login_submit(username: str = Form(...), password: str = Form(...), admin_key: str = Form(...)):
-    """Process admin login form submission"""
-    if username != ADMIN_USERNAME or password != ADMIN_PASSWORD or admin_key != ADMIN_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin credentials"
-        )
-
-    response = RedirectResponse(url="/admin/dashboard", status_code=302)
-    response.set_cookie(key="admin_session", value=ADMIN_API_KEY, httponly=True)
-    return response
 
 
