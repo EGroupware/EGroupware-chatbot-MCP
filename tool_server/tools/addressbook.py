@@ -49,47 +49,79 @@ def create_contact(base_url: str, auth: tuple, full_name: str, email: str,
 
 def search_contacts(base_url: str, auth: tuple, query: str):
     """
-    Fetches all contacts and searches locally by full name or email.
+    Search contacts using the EGroupware REST API's search functionality.
+
+    Args:
+        base_url: Base URL of the EGroupware installation
+        auth: Tuple of (username, password) for basic auth
+        query: Search query string (supports space-separated OR or + for AND)
+
+    Returns:
+        JSON string with search results
     """
     url = f"{base_url}/addressbook/"
-    headers = {"Accept": "application/json"}
+
+    headers = {
+        "Accept": "application/json"
+    }
+
+    params = {
+        "filters[search]": query,
+        "options[limit]": 10,
+        "props[]": ["fullName", "emails", "phones", "organizations"]
+    }
 
     try:
-        response = requests.get(url, auth=auth, headers=headers)
+        response = requests.get(url, auth=auth, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        responses = data.get("responses", {})
 
-        # Filter contacts by name or email
-        matches = []
-        for _, contact in responses.items():
-            name = contact.get("name", {})
-            full_name = name.get("full", "").lower()
-            last_name = name.get("n-family", "").lower()
-            emails = contact.get("emails", [])
+        contacts = []
+        for contact in data.get("responses", {}).values():
+            if not contact:
+                continue
 
-            if (query.lower() in full_name or
-                query.lower() in last_name or
-                any(query.lower() in e.get("value", "").lower() for e in emails)):
-                matches.append(contact)
+            # Parse contact fields
+            full_name = contact.get("fullName", {}).get("value", "")
+            email = ""
+            phone = ""
+            org = ""
 
-        if not matches:
-            return json.dumps({
-                "status": "success",
-                "found": False,
-                "message": "No contacts found matching the query."
+            emails = contact.get("emails", {})
+            if isinstance(emails, dict) and emails:
+                email = next(iter(emails.values()), {}).get("email", "")
+
+            phones = contact.get("phones", {})
+            if isinstance(phones, dict) and phones:
+                phone = next(iter(phones.values()), {}).get("phone", "")
+
+            org_data = contact.get("organizations", {}).get("org", {})
+            if isinstance(org_data, dict):
+                org = org_data.get("name", "")
+
+            contacts.append({
+                "name": full_name,
+                "email": email,
+                "phone": phone,
+                "organization": org
             })
 
         return json.dumps({
             "status": "success",
-            "found": True,
-            "count": len(matches),
-            "contacts": matches[:5]
+            "found": bool(contacts),
+            "message": f"Found {len(contacts)} contact(s)." if contacts else "No contacts found.",
+            "contacts": contacts
         })
 
     except requests.exceptions.HTTPError as e:
         return json.dumps({
             "status": "error",
-            "message": f"Failed to search contacts. Server responded with status {e.response.status_code}."
+            "message": f"Failed to search contacts. Server responded with status {e.response.status_code}.",
+            "details": e.response.text
         })
 
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"An unexpected error occurred: {str(e)}"
+        })
