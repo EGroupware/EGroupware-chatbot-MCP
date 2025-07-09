@@ -13,8 +13,8 @@ from fastapi.security import OAuth2PasswordRequestForm, APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 
 from . import auth, llm_service, prompts, schemas
-from .schemas import LoginRequest, AdminLoginRequest
-from .auth import oauth2_scheme, ALGORITHM, SECRET_KEY
+from .schemas import LoginRequest
+
 
 load_dotenv()
 
@@ -23,9 +23,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 chat_histories = {}
 TOOL_SERVER_URL = os.getenv("TOOL_SERVER_URL")
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "your-secure-admin-key")
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "Admin")  # Set default admin username
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")  # Default admin password
+
 
 
 # Function to call the tool server
