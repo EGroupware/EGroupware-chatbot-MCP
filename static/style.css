@@ -312,3 +312,70 @@ body {
     background-color: #9ca3af;
     cursor: not-allowed;
 }
+
+/* --- AI Model Dropdown Styles --- */
+select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: white;
+    margin-bottom: 10px;
+}
+
+select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+}
+
+/* Hover effect for dropdown */
+select:hover {
+    border-color: #007bff;
+}
+
+/* Enhanced AI Model Dropdown Styles */
+#ai-model {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+#ai-model:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
+}
+
+#ai-model:hover {
+    border-color: var(--accent-color);
+}
+
+#ai-model option {
+    background-color: var(--bg-container);
+    color: var(--text-primary);
+    padding: 12px;
+}
+
+/* Style for the dropdown container */
+.form-group select {
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+/* Remove default select styles */
+select::-ms-expand {
+    display: none;
+}
