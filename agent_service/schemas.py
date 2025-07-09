@@ -20,7 +20,3 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
-class AdminLoginRequest(BaseModel):
-    username: str
-    password: str
-    admin_key: str
