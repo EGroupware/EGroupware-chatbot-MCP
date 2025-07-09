@@ -16,9 +16,18 @@
             </div>
 
             <div class="form-group">
-                <label for="ai-key">AI API Key:</label>
-                <input type="password" id="ai-key" name="ai-key" required placeholder="sk-... or your IONOS key">
-                <small>Enter your OpenAI API key or IONOS API key</small>
+                <label for="ai-model">AI Model:</label>
+                <select id="ai-model" name="ai-model" required>
+                    <option value="openai">OpenAI</option>
+                    <option value="ionos">IONOS</option>
+                    <option value="github">GitHub AI</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="ai-key">API Key:</label>
+                <input type="password" id="ai-key" name="ai-key" required>
+                <small id="api-key-hint">Enter your API key based on selected model</small>
             </div>
 
             <div class="form-group ionos-url-group" style="display: none;">
