@@ -114,10 +114,6 @@ function setupLoginPage() {
                 apiKeyHint.textContent = 'Enter your IONOS API key';
                 ionosUrlGroup.style.display = 'block';
                 break;
-            case 'github':
-                apiKeyHint.textContent = 'Enter your GitHub API token (starts with gh)';
-                ionosUrlGroup.style.display = 'none';
-                break;
         }
         // Clear the API key input when switching models
         aiKeyInput.value = '';
@@ -141,11 +137,6 @@ function setupLoginPage() {
                     validations.aiKey = key.startsWith('sk-');
                     updateIndicator(indicator, validations.aiKey,
                         validations.aiKey ? 'Valid OpenAI key format' : 'Invalid OpenAI key format');
-                    break;
-                case 'github':
-                    validations.aiKey = key.startsWith('gh');
-                    updateIndicator(indicator, validations.aiKey,
-                        validations.aiKey ? 'Valid GitHub token format' : 'Invalid GitHub token format');
                     break;
                 case 'ionos':
                     validations.aiKey = key.length > 0;
