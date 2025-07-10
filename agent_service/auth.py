@@ -72,11 +72,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
         password: str = payload.get("pwd")
         egw_url: str = payload.get("egw_url")
         ai_key: str = payload.get("ai_key")
-        is_ionos: bool = payload.get("is_ionos", False)
-        ionos_base_url: Optional[str] = payload.get("ionos_base_url")
+        provider_type: str = payload.get("provider_type")
+        base_url: Optional[str] = payload.get("base_url")
 
         # Validate that we have the required fields
-        if username is None or password is None or egw_url is None or ai_key is None:
+        if username is None or password is None or egw_url is None or ai_key is None or provider_type is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
@@ -87,6 +87,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
         password=password,
         egw_url=egw_url,
         ai_key=ai_key,
-        is_ionos=is_ionos,
-        ionos_base_url=ionos_base_url
+        provider_type=provider_type,
+        base_url=base_url
     )
