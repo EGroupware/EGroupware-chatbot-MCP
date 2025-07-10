@@ -19,4 +19,3 @@ class LoginRequest(BaseModel):
     ionos_base_url: Optional[str] = None
     username: str
     password: str
-
