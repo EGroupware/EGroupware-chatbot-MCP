@@ -43,7 +43,7 @@ def verify_and_save_credentials(username: str, password: str, egw_url: str) -> b
     # Store user credentials in memory
     user_store[username] = {
         "username": username,
-        "password": password,  # In a real app you would hash this
+        "password": password,
         "egw_url": egw_url,
         "updated_at": datetime.utcnow()
     }
