@@ -1,114 +1,136 @@
-# EGroupware AI  (MCP Architecture)
+# EGroupware AI (MCP)
 
-This project provides a self-hosted AI chatbot designed to interact with an EGroupware instance, refactored into a true Model-Context-Protocol (MCP) inspired architecture. It features two distinct microservices:
+A modern AI assistant that integrates with EGroupware to provide a conversational interface for accessing and managing EGroupware functionalities.
 
-1.  **Agent Service**: The "brain" of the operation. It handles the user-facing chat interface, manages authentication, communicates with the Large Language Model (LLM), and orchestrates which tools to use.
-2.  **Tool Server**: The "hands" of the operation. It's a dedicated, secure API server that exposes the EGroupware functions (like creating contacts or events) as tools. It knows nothing about AI and simply executes commands on behalf of the Agent.
+## Overview
 
-This microservices architecture makes the system more robust, scalable, and easier to maintain.
+This project implements an AI-powered chatbot system for EGroupware that allows users to interact with their EGroupware data using natural language. The system consists of two main components:
+
+1. **Agent Service**: Handles the conversational interface, LLM interactions, authentication, and user interface
+2. **Tool Server**: Connects to EGroupware APIs and provides tools for the agent to perform actions in EGroupware
+
+## Architecture
+
+The system is designed as a microservice architecture with Docker containerization:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│   Web Frontend  │◄────┤  Agent Service  │◄────┤  Tool Server    │
+│   (Browser)     │     │  (FastAPI)      │     │  (FastAPI)      │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │                 │
+                                               │   EGroupware    │
+                                               │                 │
+                                               └─────────────────┘
+```
 
 ## Features
 
-- **Secure Authentication**: Users log in with their EGroupware username and password. Sessions are managed by the Agent Service using JWTs.
-- **MCP-Style Architecture**: Clean separation between the AI agent and the tools it uses.
-- **AI-Powered Agent**: Utilizes the `meta-llama/Llama-3.3-70B-Instruct` model via the IONOS API to understand user requests.
-- **Dedicated Tool Server**: Exposes a clear, versionable API for EGroupware functions.
-  - **Address Book**: Create/search contacts.
-  - **Calendar**: Create/list events.
-  - **Task Management (InfoLog)**: Create tasks.
-  - **Knowledge Retrieval**: Fetches company info from a  markdown file.
-- **Streaming Responses**: Chat responses are streamed in real-time for a smooth user experience.
+- **Conversational AI Interface**: Natural language processing for EGroupware interactions
+- **Authentication**: Secure login with EGroupware credentials
+- **EGroupware Integration**: Access to key EGroupware modules:
+  - Addressbook management
+  - Calendar events and appointments
+  - InfoLog (tasks and notes)
+  - Email communications
+  - Knowledge base access
+- **Multi-model LLM Support**: Configurable to work with various LLM providers
+- **Containerized Deployment**: Easy setup with Docker Compose
 
-## Prerequisites
+## Installation & Setup
+
+### Prerequisites
 
 - Docker and Docker Compose
-- An EGroupware instance with valid credentials
-- IONOS API key for AI services or an OpenAI API key (optional)
+- EGroupware instance with API access
+- LLM API keys (OpenAI, Azure, Anthropic, etc.)
 
+### Configuration
 
+1. Create a `.env` file in the project root with the following variables:
 
-## Quick Start with Docker
+```
+# .env file for EGroupware Chatbot
 
-1. Clone the repository:
+# Tool Server Configuration
+TOOL_SERVER_URL=http://tool-server:8001
+
+# Security (change these values!)
+JWT_SECRET=your_jwt_secret_here
+
+```
+
+### Deployment
+
 ```bash
-git clone https://github.com/EGroupware/EGroupware-chatbot-MCP
-cd egroupware-MCP
+# Build and start the containers
+docker-compose up -d
+
+# Check logs if needed
+docker-compose logs -f
 ```
 
-2. Set up environment variables:
-```bash
-cp .env.example .env 
-```
-Edit the `.env` file and fill in your credentials:
-- `IONOS_API_KEY`: Your IONOS API key
-- `OPENAI_API_KEY`: Your OpenAI API key (optional)
-- `EGROUPWARE_BASE_URL`: Your EGroupware instance URL
-- `JWT_SECRET_KEY`: Generate using `openssl rand -hex 32`
-
-3. Build and start the Docker containers:
-```bash
-docker-compose up --build
-```
-
-The services will be available at:
-- Web Interface: http://localhost:8000
-- Tool Server API: http://localhost:8001
-
-## Architecture Overview
-
-```
-┌─────────────────┐      ┌──────────────┐
-│   Web Client    │──────▶ Agent Service│
-└─────────────────┘      │  (Port 8000) │
-                         └───────┬──────┘
-                                 │
-                                 ▼
-                         ┌──────────────┐
-                         │ Tool Server  │
-                         │  (Port 8001) │
-                         └──────────────┘
-```
+The application will be available at http://localhost:8000
 
 ## Usage
 
-1. Access the web interface at http://localhost:8000
+1. Navigate to http://localhost:8000 in your web browser
 2. Log in with your EGroupware credentials
-3. Start chatting! The bot can help with:
-   - Managing contacts in the address book
-   - Creating and viewing calendar events
-   - Creating tasks
-   - Accessing company knowledge base
+3. Start interacting with the chatbot by typing natural language queries such as:
+   - "Show my upcoming meetings for next week"
+   - "Create a new contact for John Doe with email john.doe@example.com"
+   - "Find documents about project planning in the knowledge base"
 
-## Available Commands
+## Project Structure
 
-The chatbot understands natural language requests such as:
-- "Create a new contact for John Doe"
-- "Schedule a meeting tomorrow at 2 PM"
-- "Create a task for the marketing team"
-- "What is EGroupware's mission?"
+- `agent_service/`: The main service that handles the LLM interface and user interactions
+  - `main.py`: FastAPI application entry point
+  - `auth.py`: Authentication handling
+  - `llm_service.py`: LLM provider integrations
+  - `prompts.py`: System prompts for the LLM
+  - `schemas.py`: Data models
+
+- `tool_server/`: The service that connects to EGroupware
+  - `tools/`: Individual tool implementations
+    - `addressbook.py`: Contact management functions
+    - `calendar.py`: Calendar event functions
+    - `infolog.py`: Tasks and notes functions
+    - `mail.py`: Email functions
+    - `knowledge.py`: Knowledge base search functions
+  - `knowledge/`: Local knowledge base files
+
+- `static/`: Web frontend files
+  - `index.html`: Main chat interface
+  - `login.html`: Login page
+  - `script.js`: Frontend JavaScript
+  - `style.css`: Styling
+
+- `docker-compose.yml`: Docker Compose configuration
+- `agent.Dockerfile`: Dockerfile for the agent service
+- `tool.Dockerfile`: Dockerfile for the tool server
+- `requirements.txt`: Python dependencies
 
 ## Development
 
 ### Local Development Setup
 
-1. Create a virtual environment:
+1. Create a Python virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-2. Install dependencies:
-```bash
 pip install -r requirements.txt
 ```
 
+2. Run the services separately:
+```bash
+# Terminal 1 - Tool Server
+uvicorn tool_server.main:app --reload --port 8001
 
-
-### Project Structure
-
-- `agent_service/`: Main chatbot service with LLM integration
-- `tool_server/`: EGroupware integration API
-- `static/`: Web interface files
-- `docker-compose.yml`: Docker services configuration
-- `.env`: Environment configuration
-
+# Terminal 2 - Agent Service
+uvicorn agent_service.main:app --reload --port 8000
+```
