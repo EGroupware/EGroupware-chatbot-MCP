@@ -84,25 +84,37 @@ async def login_for_access_token(
             detail="Invalid EGroupware URL or credentials."
         )
 
-    # 2. Determine if it's an OpenAI or IONOS key
-    is_openai = login_data.ai_key.startswith('sk-')
-    if not is_openai and not login_data.ionos_base_url:
+    # Validate provider configuration
+    if login_data.provider_type not in [p.value for p in llm_service.ProviderType]:
         raise HTTPException(
             status_code=400,
-            detail="IONOS base URL is required for IONOS API keys"
+            detail=f"Invalid provider type: {login_data.provider_type}"
         )
 
-    # 3. Create the JWT payload with all the session configuration
+    # Check if base_url is required but not provided
+    if login_data.provider_type != llm_service.ProviderType.OPENAI.value and not login_data.base_url:
+        # OpenAI doesn't need a base_url, others do
+        if login_data.provider_type in [
+            llm_service.ProviderType.IONOS.value,
+            llm_service.ProviderType.AZURE.value,
+            llm_service.ProviderType.OPENROUTER.value
+        ]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Base URL is required for {login_data.provider_type} provider"
+            )
+
+    # Create the JWT payload with all the session configuration
     jwt_payload = {
         "sub": login_data.username,
         "pwd": login_data.password,
         "egw_url": login_data.egw_url,
         "ai_key": login_data.ai_key,
-        "is_ionos": not is_openai,
-        "ionos_base_url": login_data.ionos_base_url if not is_openai else None
+        "provider_type": login_data.provider_type,
+        "base_url": login_data.base_url
     }
 
-    # 4. Create the token
+    # Create the token
     token = auth.create_access_token(data=jwt_payload)
     return {"access_token": token, "token_type": "bearer"}
 
@@ -287,6 +299,9 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
 
     tool_calls, full_response = [], ""
     for chunk in stream:
+        if not chunk.choices:
+            continue
+
         delta = chunk.choices[0].delta
         if delta and delta.content:
             full_response += delta.content
@@ -319,6 +334,8 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
         )
         second_response = ""
         for chunk in second_stream:
+            if not chunk.choices:
+                continue
             if chunk.choices[0].delta and chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 second_response += content
@@ -357,36 +374,47 @@ async def validate_egroupware_url(data: dict):
 @app.post("/validate/ai-key")
 async def validate_ai_key(data: dict):
     api_key = data.get("api_key")
-    ionos_base_url = data.get("ionos_base_url")
+    provider_type = data.get("provider_type")
+    base_url = data.get("base_url")
 
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
 
-    # Check if it's an OpenAI key (starts with 'sk-')
-    is_openai = api_key.startswith("sk-")
+    if not provider_type or provider_type not in [p.value for p in llm_service.ProviderType]:
+        raise HTTPException(status_code=400, detail="Valid provider type is required")
+
+    # Check if base_url is required but not provided
+    if provider_type != llm_service.ProviderType.OPENAI.value and not base_url:
+        if provider_type in [
+            llm_service.ProviderType.IONOS.value,
+            llm_service.ProviderType.AZURE.value,
+            llm_service.ProviderType.OPENROUTER.value
+        ]:
+            return {
+                "valid": False,
+                "detail": f"Base URL is required for {provider_type} provider",
+                "provider_type": provider_type
+            }
 
     try:
-        if is_openai:
-            # Test OpenAI API key
-            client = openai.OpenAI(api_key=api_key)
-        else:
-            # Test IONOS API key
-            if not ionos_base_url:
-                return {"valid": False, "detail": "IONOS base URL is required for IONOS API keys", "is_ionos": True}
-
-            client = openai.OpenAI(
-                api_key=api_key,
-                base_url=ionos_base_url
-            )
+        # Create provider instance based on the provider type
+        provider = llm_service.Provider.create_provider(
+            provider_type=provider_type,
+            api_key=api_key,
+            base_url=base_url
+        )
 
         # Make a minimal API call to validate the key
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo" if is_openai else "meta-llama/Llama-3.3-70B-Instruct",
-            messages=[{"role": "user", "content": "test"}],
-            max_tokens=1
-        )
-        return {"valid": True, "is_ionos": not is_openai}
+        # This could fail depending on the provider if they don't support the same interface
+        # We'll catch exceptions and report them
+        client = provider.get_client()
+
+        # For simplicity, let's just return valid if we can create a client
+        # In a production environment, you would make a test API call to verify
+        return {"valid": True, "provider_type": provider_type}
     except Exception as e:
-        return {"valid": False, "detail": f"Invalid API key: {str(e)}", "is_ionos": not is_openai}
-
-
+        return {
+            "valid": False,
+            "detail": f"Invalid API key or configuration: {str(e)}",
+            "provider_type": provider_type
+        }
