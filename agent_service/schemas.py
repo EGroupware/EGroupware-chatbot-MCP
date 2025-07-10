@@ -10,12 +10,13 @@ class TokenData(BaseModel):
     password: Optional[str] = None
     egw_url: str
     ai_key: str
-    is_ionos: bool
-    ionos_base_url: Optional[str] = None
+    provider_type: str
+    base_url: Optional[str] = None
 
 class LoginRequest(BaseModel):
     egw_url: str
     ai_key: str
-    ionos_base_url: Optional[str] = None
+    provider_type: str  # Type of AI provider (openai, ionos, github, etc.)
+    base_url: Optional[str] = None  # Base URL for the API (if needed)
     username: str
     password: str
