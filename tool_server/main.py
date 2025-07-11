@@ -14,14 +14,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# This is now a fallback only
+
 EGROUPWARE_BASE_URL = os.getenv("EGROUPWARE_BASE_URL")
 
 
 class AuthPayload(BaseModel):
     username: str
     password: str
-    egw_url: Optional[str] = None  # Added to accept URL from agent service
+    egw_url: Optional[str] = None
 
 
 class CreateContactArgs(BaseModel):
