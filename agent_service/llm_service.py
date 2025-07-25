@@ -189,7 +189,7 @@ class AzureProvider(Provider):
     def get_completion(self, messages, tools, stream=True):
         client = self.get_client()
         return client.chat.completions.create(
-            model="gpt-4",  # This would be the deployment name
+            model="gpt-4",
             messages=messages,
             tools=tools,
             tool_choice="auto",
