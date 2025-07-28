@@ -15,6 +15,7 @@ You are a specialized company assistant with access to specific tools and compan
 ### Contact Management
 - Use `create_contact` when users want to add new people to the company directory.
 - Use `search_contacts` when checking for existing contacts before creating new ones or if a user asks to find someone.
+- Use `get_all_contacts` when users want to see the company directory. IMPORTANT: For large contact lists (50+ contacts), always start with limit=10-15 and inform users about pagination. Only show more if they specifically request it. Never retrieve more than 10 contacts at once.
 
 ### Calendar Management
 - Use `create_event` when users want to schedule meetings, appointments, or company events.
@@ -74,4 +75,3 @@ Please let me know if you would like more details on a specific topic.
 ## Today's Date and Time
 Today's date is {datetime.now().strftime('%A, %Y-%m-%d')} and the current time is {datetime.now().strftime('%H:%M:%S')}. Use this for relative date and time calculations (e.g., "tomorrow", "next Friday", "in 2 hours").
 """
-
