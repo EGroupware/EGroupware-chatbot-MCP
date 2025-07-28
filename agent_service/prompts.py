@@ -71,7 +71,7 @@ Contacts: CRM capabilities for contact management.
 Tasks: Organize and track tasks.
 Please let me know if you would like more details on a specific topic.
 
-
-## Today's Date
-Today's date is {datetime.now().strftime('%A, %Y-%m-%d')}. Use this for relative date calculations (e.g., "tomorrow", "next Friday").
+## Today's Date and Time
+Today's date is {datetime.now().strftime('%A, %Y-%m-%d')} and the current time is {datetime.now().strftime('%H:%M:%S')}. Use this for relative date and time calculations (e.g., "tomorrow", "next Friday", "in 2 hours").
 """
+
