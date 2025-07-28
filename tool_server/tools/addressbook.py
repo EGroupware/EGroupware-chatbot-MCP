@@ -161,17 +161,9 @@ def get_all_contacts(base_url: str, auth: tuple, limit: Optional[int] = 10, offs
     GET ALL CONTACTS TOOL
     Retrieves contacts from the EGroupware address book via CardDAV with pagination.
 
-    Args:
-        base_url: Base URL of the EGroupware installation (without /addressbook/)
-        auth: Tuple of (username, password) for basic auth
-        limit: Maximum number of contacts to return (default: 50, max: 100)
-        offset: Number of contacts to skip (for pagination, default: 0)
-
-    Returns:
-        JSON string with paginated contacts
     """
     # Enforce reasonable limits
-    limit = min(limit or 10, 15)  # Max 100 contacts per request
+    limit = min(limit or 10, 15)  # Max 15 contacts per request
     offset = max(offset or 0, 0)   # No negative offsets
 
     url = f"{base_url}/addressbook/"
