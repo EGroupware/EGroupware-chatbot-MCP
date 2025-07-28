@@ -17,7 +17,6 @@ def create_event(
 ):
     """
     Schedules a new event in the user's personal EGroupware calendar.
-    NOTE: EGroupware ignores 'participants' in the request; only the authenticated user is added.
     """
     url = f"{base_url}/calendar/"
 
@@ -71,7 +70,6 @@ def create_event(
 def list_events(base_url: str, auth: tuple, start_date: str, end_date: str):
     """
     Retrieves and lists events from the calendar.
-    Uses the official EGroupware REST API format.
     """
     url = f"{base_url}/calendar/"
 
