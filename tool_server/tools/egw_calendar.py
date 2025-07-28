@@ -1,12 +1,7 @@
+
 import requests
 import json
 from typing import Optional, List
-from datetime import datetime, timezone
-import uuid
-import os
-from dotenv import load_dotenv
-from pathlib import Path
-
 
 
 def create_event(
@@ -18,49 +13,35 @@ def create_event(
         time_zone: str = "Europe/Berlin",
         description: Optional[str] = None,
         location: Optional[str] = None,
-        attendee_emails: Optional[List[str]] = None,
         priority: int = 5
 ):
     """
-    Schedules a new event in the user's personal EGroupware calendar,
-    using the official EGroupware REST API format.
+    Schedules a new event in the user's personal EGroupware calendar.
+    NOTE: EGroupware ignores 'participants' in the request; only the authenticated user is added.
     """
     url = f"{base_url}/calendar/"
 
-    # --- Participant Block Construction ---
-    participants = {}
-    participant_key_counter = 1
-
-    if attendee_emails:
-        for email in attendee_emails:
-            attendee_name = email.split('@')[0].replace('.', ' ').title()
-            participants[str(participant_key_counter)] = {
-                "@type": "Participant",
-                "name": attendee_name,
-                "email": email,
-                "kind": "individual",
-                "roles": {"attendee": True},
-                "participationStatus": "needs-action"
-            }
-            participant_key_counter += 1
-
-    # --- Payload Construction according to JSCalendar specification ---
+    # --- Payload Construction (minimum required fields) ---
     payload = {
         "title": title,
         "start": start_datetime,
         "timeZone": time_zone,
         "duration": f"PT{duration_minutes}M",
-        "participants": participants,
         "status": "confirmed",
         "priority": priority,
         "privacy": "public"
     }
 
-    # Add optional fields
+    # Add optional fields (description and location)
     if description:
         payload["description"] = description
     if location:
-        payload["locations"] = {"loc-1": {"@type": "Location", "name": location}}
+        payload["locations"] = {
+            "loc-1": {
+                "@type": "Location",
+                "name": location
+            }
+        }
 
     # --- API Call and Response Handling ---
     try:
@@ -68,18 +49,18 @@ def create_event(
             url,
             auth=auth,
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            }
         )
         response.raise_for_status()
 
-        success_message = f"Event '{title}' was created successfully."
-        if attendee_emails:
-            success_message += f" Invited: {', '.join(attendee_emails)}."
-
         return json.dumps({
             "status": "success",
-            "message": success_message
+            "message": f"Event '{title}' created successfully at {start_datetime}."
         })
+
     except requests.exceptions.HTTPError as e:
         return json.dumps({
             "status": "error",
