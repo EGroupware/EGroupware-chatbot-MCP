@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ValidationError
 from typing import Any, Dict, Optional , List
 
-from .tools import addressbook, calendar, infolog, knowledge, mail
+from .tools import addressbook, egw_calendar, infolog, knowledge, mail
 # We still load env variables as fallback
 from dotenv import load_dotenv
 load_dotenv()
@@ -35,6 +35,11 @@ class CreateContactArgs(BaseModel):
 
 class SearchContactsArgs(BaseModel):
     query: str
+
+
+class GetAllContactsArgs(BaseModel):
+    limit: Optional[int] = 50  # Default 50 contacts per page
+    offset: Optional[int] = 0  # Start from beginning
 
 
 class CreateEventArgs(BaseModel):
@@ -76,8 +81,9 @@ class ExecuteToolRequest(BaseModel):
 tool_registry = {
     "create_contact": (addressbook.create_contact, CreateContactArgs),
     "search_contacts": (addressbook.search_contacts, SearchContactsArgs),
-    "create_event": (calendar.create_event, CreateEventArgs),
-    "list_events": (calendar.list_events, ListEventsArgs),
+    "get_all_contacts": (addressbook.get_all_contacts, GetAllContactsArgs),
+    "create_event": (egw_calendar.create_event, CreateEventArgs),
+    "list_events": (egw_calendar.list_events, ListEventsArgs),
     "create_task": (infolog.create_task, CreateTaskArgs),
     "send_email": (mail.send_email, SendEmailArgs),
     "get_company_info": (knowledge.get_company_info, None),
