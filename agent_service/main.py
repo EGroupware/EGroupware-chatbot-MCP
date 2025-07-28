@@ -155,6 +155,32 @@ tool_definitions = [
     {
         "type": "function",
         "function": {
+            "name": "get_all_contacts",
+            "description": "Retrieves contacts from the EGroupware address book with pagination. For large contact lists, always start with a small limit (e.g., 20-50) and offer to show more if needed. Never retrieve more than 100 contacts at once.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of contacts to return (default: 50, max: 100)",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "default": 50
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Number of contacts to skip for pagination (default: 0)",
+                        "minimum": 0,
+                        "default": 0
+                    }
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "send_email",
             "description": "Sends an email to one or more recipients. Requires a subject and a list of 'to' addresses. Can optionally include a body, cc, and bcc.",
             "parameters": {
