@@ -99,14 +99,14 @@ class GitHubProvider(Provider):
         client = self.get_client()
         try:
             return client.chat.completions.create(
-                model="openai/gpt-4o",
+                model="openai/gpt-4o-mini",
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
                 stream=stream,
                 temperature=1.0,
                 top_p=1.0,
-                max_tokens=1000,
+                max_tokens=1024,
             )
         except Exception as e:
             print(f"Error calling GitHub AI: {e}")
