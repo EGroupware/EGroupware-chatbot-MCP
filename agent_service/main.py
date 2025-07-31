@@ -6,8 +6,9 @@ import openai
 
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
 
 from fastapi.staticfiles import StaticFiles
 
@@ -373,28 +374,53 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
 
 
 # Endpoint to handle chat requests
-@app.get("/chat")
-async def chat_endpoint(message: str, token: str):
+@app.get("/chat", response_class=StreamingResponse, tags=["Chat"], summary="Chat with the EGroupware Agent", description="Streams chat responses from the EGroupware Agent. Requires a valid token.")
+async def chat_endpoint(
+    message: str = Field(..., description="The user's message to the agent."),
+    token: str = Field(..., description="Authentication token for the user.")
+):
+    """
+    Streams chat responses from the EGroupware Agent. Requires a valid token.
+    """
     current_user = await auth.get_current_user(token)
     return StreamingResponse(chat_stream_generator(message, current_user), media_type="text/event-stream")
 
 
+class EGroupwareURLValidationRequest(BaseModel):
+    url: str = Field(..., example="https://demo.egroupware.org/egroupware")
+
+class EGroupwareURLValidationResponse(BaseModel):
+    valid: bool = Field(..., description="Whether the EGroupware URL is valid and reachable.")
+    detail: str | None = Field(None, description="Additional information about the validation result.")
+
+
 # Validation endpoints
-@app.post("/validate/egroupware-url")
-async def validate_egroupware_url(data: dict):
-    url = data.get("url")
+@app.post(
+    "/validate/egroupware-url",
+    response_model=EGroupwareURLValidationResponse,
+    tags=["Validation"],
+    summary="Validate EGroupware URL",
+    description="Checks if the provided EGroupware URL is reachable and requires authentication."
+)
+async def validate_egroupware_url(
+    data: EGroupwareURLValidationRequest = Body(..., example={"url": "https://demo.egroupware.org/egroupware"})
+):
+    """
+    Checks if the provided EGroupware URL is reachable and requires authentication.
+    Returns valid=True if the URL exists and returns 401 (Unauthorized), otherwise valid=False.
+    """
+    url = data.url
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
 
     try:
-        # Try to access the EGroupware URL
         test_url = f"{url.rstrip('/')}/addressbook/"
         response = requests.get(test_url, timeout=10)
-        if response.status_code == 401:  # 401 means the URL exists but needs auth
-            return {"valid": True}
-        return {"valid": False, "detail": "Invalid EGroupware URL"}
+        if response.status_code == 401:
+            return EGroupwareURLValidationResponse(valid=True, detail=None)
+        return EGroupwareURLValidationResponse(valid=False, detail="Invalid EGroupware URL")
     except requests.RequestException as e:
-        return {"valid": False, "detail": f"Could not connect to EGroupware: {str(e)}"}
+        return EGroupwareURLValidationResponse(valid=False, detail=f"Could not connect to EGroupware: {str(e)}")
 
 
 @app.post("/validate/ai-key")
