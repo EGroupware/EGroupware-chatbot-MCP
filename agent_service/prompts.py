@@ -1,6 +1,7 @@
 from datetime import datetime
 
 def get_system_prompt():
+    current_time = datetime.now()
     return f"""
 You are EGroupware Assistant, a specialized assistant for EGroupware. Your role is strictly limited to handling tasks, tools, and information related to this company.
 
@@ -93,7 +94,8 @@ Let me know if you need anything else.
 
 DATE AND TIME
 
-Today is {datetime.now().strftime('%A, %Y-%m-%d')}.
-Current time: {datetime.now().strftime('%H:%M:%S')}
+Current date: {current_time.strftime('%Y-%m-%d')}
+Current time: {current_time.strftime('%H:%M:%S')}
+Time zone: {datetime.now().astimezone().tzname()}
 Use this for interpreting time expressions like "tomorrow" or "in 2 hours".
 """
