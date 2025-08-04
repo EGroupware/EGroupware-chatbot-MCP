@@ -3,10 +3,11 @@ import os
 from typing import AsyncGenerator
 import requests
 import openai
+from datetime import datetime
 
 
 from dotenv import load_dotenv
-from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -376,8 +377,8 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
 # Endpoint to handle chat requests
 @app.get("/chat", response_class=StreamingResponse, tags=["Chat"], summary="Chat with the EGroupware Agent", description="Streams chat responses from the EGroupware Agent. Requires a valid token.")
 async def chat_endpoint(
-    message: str = Field(..., description="The user's message to the agent."),
-    token: str = Field(..., description="Authentication token for the user.")
+    message: str = Query(..., description="The user's message to the agent."),
+    token: str = Query(..., description="Authentication token for the user.")
 ):
     """
     Streams chat responses from the EGroupware Agent. Requires a valid token.
