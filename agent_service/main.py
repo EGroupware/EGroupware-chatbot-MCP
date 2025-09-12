@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 from dotenv import load_dotenv
-from fastapi import Body, Depends, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -372,6 +372,109 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
             {"role": "assistant", "content": second_response})
 
     yield "event: end\ndata: {}\n\n"
+
+
+# Quick suggestion endpoint
+class SuggestionRequest(BaseModel):
+    count: int = Field(3, ge=1, le=6, description="Number of quick reply suggestions")
+
+class SuggestionResponse(BaseModel):
+    suggestions: list[str]
+
+@app.get(
+    "/suggestions",
+    response_model=SuggestionResponse,
+    tags=["Chat"],
+    summary="Generate quick reply suggestions",
+)
+async def get_suggestions(
+    token: str = Query(...),
+    count: int = Query(3, ge=1, le=6)
+):
+    current_user = await auth.get_current_user(token)
+    history = chat_histories.get(current_user.username)
+    if not history:
+        # Provide generic starters if no history
+        return SuggestionResponse(suggestions=[
+            "Show my upcoming meetings",
+            "Add a new contact",
+            "Create a task for next week"
+        ][:count])
+
+    # Build condensed recent context (last 6 turns)
+    recent = []
+    for msg in history[-12:]:  # rough pairs
+        role = msg.get('role')
+        if role in ('user', 'assistant') and msg.get('content'):
+            recent.append({"role": role, "content": msg['content'][:800]})
+
+    system_prompt = (
+        "You suggest short follow-up options. Return ONLY a JSON array of concise "
+        "user-facing suggestions (<=12 words each). Provide varied actionable intents."
+    )
+    messages = [{"role": "system", "content": system_prompt}] + recent + [
+        {"role": "user", "content": "Generate follow-up quick replies now."}
+    ]
+
+    raw = llm_service.get_non_streaming_completion(
+        messages,
+        current_user_config=current_user,
+        max_tokens=180,
+        temperature=0.8,
+    )
+    suggestions: list[str] = []
+    if raw:
+        import json as _json
+        try:
+            # Extract JSON array heuristically
+            start = raw.find('[')
+            end = raw.rfind(']')
+            if start != -1 and end != -1:
+                arr_txt = raw[start:end+1]
+                parsed = _json.loads(arr_txt)
+                if isinstance(parsed, list):
+                    suggestions = [str(x).strip() for x in parsed if isinstance(x, (str,int,float))][:count]
+        except Exception:
+            pass
+    if not suggestions:
+        suggestions = [
+            "List my upcoming events",
+            "Create a new InfoLog task",
+            "Search contacts for 'John'"
+        ][:count]
+    return SuggestionResponse(suggestions=suggestions)
+
+
+# Voice transcription endpoint
+class TranscriptionResponse(BaseModel):
+    text: str
+
+@app.post("/transcribe", response_model=TranscriptionResponse, tags=["Voice"], summary="Transcribe short voice clip")
+async def transcribe_audio(token: str = Form(...), audio: UploadFile = File(...)):
+    current_user = await auth.get_current_user(token)
+    # Only implement for OpenAI provider for now
+    if current_user.provider_type != llm_service.ProviderType.OPENAI.value:
+        raise HTTPException(status_code=400, detail="Voice transcription currently supported only for OpenAI provider")
+
+    try:
+        client = openai.OpenAI(api_key=current_user.ai_key)
+        # Read bytes
+        data = await audio.read()
+        import io
+        file_obj = io.BytesIO(data)
+        file_obj.name = audio.filename or "voice.webm"
+        # Whisper-1
+        result = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(file_obj.name, file_obj, audio.content_type or "audio/webm"),
+            response_format="json"
+        )
+        text = getattr(result, 'text', '') or (result.get('text') if isinstance(result, dict) else '')
+        if not text:
+            raise HTTPException(status_code=500, detail="Empty transcription result")
+        return TranscriptionResponse(text=text.strip())
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {e}")
 
 
 # Endpoint to handle chat requests
