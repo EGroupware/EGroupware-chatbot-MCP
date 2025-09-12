@@ -303,6 +303,15 @@ body {
     justify-content: center;
     transition: background-color 0.2s;
 }
+#voice-btn.recording {
+    background-color: #dc2626;
+    animation: pulse 1s infinite;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.6); }
+    70% { box-shadow: 0 0 0 12px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
 #chat-form button:hover {
     background-color: var(--accent-color-hover);
 }
@@ -378,4 +387,27 @@ select:hover {
 /* Remove default select styles */
 select::-ms-expand {
     display: none;
+}
+
+/* Quick Replies */
+.quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 4px 0;
+}
+.quick-reply-btn {
+    background: var(--bot-message-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.quick-reply-btn:hover {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
 }
