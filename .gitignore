@@ -1,30 +1,80 @@
+############################
 # Python
+############################
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
 
-# Environment files
+############################
+# Environment / Virtualenv
+############################
 .env
+.env.*
+!*.example
 .venv
-env/
 venv/
+env/
 ENV/
+pip-wheel-metadata/
 
-# IDE files
+############################
+# IDE / Editor
+############################
 .idea/
 .vscode/
 *.swp
 *.swo
+*.code-workspace
 
-
-
-# Logs
+############################
+# Logs & runtime
+############################
 *.log
+logs/
+*.pid
 
+############################
+# Tests / Coverage
+############################
+.pytest_cache/
+.coverage*
+coverage-html/
+htmlcov/
+
+############################
 # Distribution / packaging
+############################
 dist/
 build/
 *.egg-info/
+*.egg
+*.whl
 
+############################
 # Docker
+############################
 .docker/
+docker-data/
+
+############################
+# Node / Frontend (if built assets appear later)
+############################
+node_modules/
+*.tsbuildinfo
+
+############################
+# OS / Misc
+############################
+.DS_Store
+Thumbs.db
+*.orig
+*.bak
+*.tmp
+
+############################
+# SSL (ignore all cert/key material) - Option A
+############################
+ssl/
+!ssl/README.md
