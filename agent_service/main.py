@@ -5,7 +5,6 @@ import requests
 import openai
 from datetime import datetime
 
-
 from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -16,15 +15,13 @@ from fastapi.staticfiles import StaticFiles
 from . import auth, llm_service, prompts, schemas
 from .schemas import LoginRequest
 
-
 load_dotenv()
 
-app = FastAPI(title="EGroupware Agent Service")
+app = FastAPI(title="EGroupware Agent Service", root_path="/chatbot")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 chat_histories = {}
 TOOL_SERVER_URL = os.getenv("TOOL_SERVER_URL")
-
 
 
 # Function to call the tool server
@@ -119,6 +116,7 @@ async def login_for_access_token(
     # Create the token
     token = auth.create_access_token(data=jwt_payload)
     return {"access_token": token, "token_type": "bearer"}
+
 
 tool_definitions = [
     {
@@ -312,12 +310,12 @@ tool_definitions = [
     },
 ]
 
+
 # Chat streaming endpoint
 async def chat_stream_generator(message: str, current_user: schemas.TokenData) -> AsyncGenerator[str, None]:
     if current_user.username not in chat_histories:
         chat_histories[current_user.username] = [{"role": "system", "content": prompts.get_system_prompt()}]
     chat_histories[current_user.username].append({"role": "user", "content": message})
-
 
     stream = llm_service.get_streaming_chat_response(
         messages=chat_histories[current_user.username],
@@ -378,8 +376,10 @@ async def chat_stream_generator(message: str, current_user: schemas.TokenData) -
 class SuggestionRequest(BaseModel):
     count: int = Field(3, ge=1, le=6, description="Number of quick reply suggestions")
 
+
 class SuggestionResponse(BaseModel):
     suggestions: list[str]
+
 
 @app.get(
     "/suggestions",
@@ -388,18 +388,18 @@ class SuggestionResponse(BaseModel):
     summary="Generate quick reply suggestions",
 )
 async def get_suggestions(
-    token: str = Query(...),
-    count: int = Query(3, ge=1, le=6)
+        token: str = Query(...),
+        count: int = Query(3, ge=1, le=6)
 ):
     current_user = await auth.get_current_user(token)
     history = chat_histories.get(current_user.username)
     if not history:
         # Provide generic starters if no history
         return SuggestionResponse(suggestions=[
-            "Show my upcoming meetings",
-            "Add a new contact",
-            "Create a task for next week"
-        ][:count])
+                                                  "Show my upcoming meetings",
+                                                  "Add a new contact",
+                                                  "Create a task for next week"
+                                              ][:count])
 
     # Build condensed recent context (last 6 turns)
     recent = []
@@ -430,24 +430,25 @@ async def get_suggestions(
             start = raw.find('[')
             end = raw.rfind(']')
             if start != -1 and end != -1:
-                arr_txt = raw[start:end+1]
+                arr_txt = raw[start:end + 1]
                 parsed = _json.loads(arr_txt)
                 if isinstance(parsed, list):
-                    suggestions = [str(x).strip() for x in parsed if isinstance(x, (str,int,float))][:count]
+                    suggestions = [str(x).strip() for x in parsed if isinstance(x, (str, int, float))][:count]
         except Exception:
             pass
     if not suggestions:
         suggestions = [
-            "List my upcoming events",
-            "Create a new InfoLog task",
-            "Search contacts for 'John'"
-        ][:count]
+                          "List my upcoming events",
+                          "Create a new InfoLog task",
+                          "Search contacts for 'John'"
+                      ][:count]
     return SuggestionResponse(suggestions=suggestions)
 
 
 # Voice transcription endpoint
 class TranscriptionResponse(BaseModel):
     text: str
+
 
 @app.post("/transcribe", response_model=TranscriptionResponse, tags=["Voice"], summary="Transcribe short voice clip")
 async def transcribe_audio(token: str = Form(...), audio: UploadFile = File(...)):
@@ -478,10 +479,11 @@ async def transcribe_audio(token: str = Form(...), audio: UploadFile = File(...)
 
 
 # Endpoint to handle chat requests
-@app.get("/chat", response_class=StreamingResponse, tags=["Chat"], summary="Chat with the EGroupware Agent", description="Streams chat responses from the EGroupware Agent. Requires a valid token.")
+@app.get("/chat", response_class=StreamingResponse, tags=["Chat"], summary="Chat with the EGroupware Agent",
+         description="Streams chat responses from the EGroupware Agent. Requires a valid token.")
 async def chat_endpoint(
-    message: str = Query(..., description="The user's message to the agent."),
-    token: str = Query(..., description="Authentication token for the user.")
+        message: str = Query(..., description="The user's message to the agent."),
+        token: str = Query(..., description="Authentication token for the user.")
 ):
     """
     Streams chat responses from the EGroupware Agent. Requires a valid token.
@@ -492,6 +494,7 @@ async def chat_endpoint(
 
 class EGroupwareURLValidationRequest(BaseModel):
     url: str = Field(..., example="https://demo.egroupware.org/egroupware")
+
 
 class EGroupwareURLValidationResponse(BaseModel):
     valid: bool = Field(..., description="Whether the EGroupware URL is valid and reachable.")
@@ -507,22 +510,37 @@ class EGroupwareURLValidationResponse(BaseModel):
     description="Checks if the provided EGroupware URL is reachable and requires authentication."
 )
 async def validate_egroupware_url(
-    data: EGroupwareURLValidationRequest = Body(..., example={"url": "https://demo.egroupware.org/egroupware"})
+        data: EGroupwareURLValidationRequest = Body(..., example={"url": "https://demo.egroupware.org/egroupware"})
 ):
     """
     Checks if the provided EGroupware URL is reachable and requires authentication.
-    Returns valid=True if the URL exists and returns 401 (Unauthorized), otherwise valid=False.
+    Returns valid=True if the URL exists and returns 401 (Unauthorized) or 302 (Redirect to login), otherwise valid=False.
     """
     url = data.url
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
 
     try:
-        test_url = f"{url.rstrip('/')}/addressbook/"
-        response = requests.get(test_url, timeout=10)
-        if response.status_code == 401:
+        # Handle both base EGroupware URL and GroupDAV URL formats
+        if '/groupdav.php' in url:
+            # Use the provided GroupDAV URL directly
+            test_url = url
+        else:
+            # Construct the proper GroupDAV URL from base URL
+            base_url = url.rstrip('/')
+            test_url = f"{base_url}/groupdav.php/addressbook/"
+
+        response = requests.get(test_url, timeout=10, allow_redirects=False)
+
+        # EGroupware can return 401 (unauthorized) or 302 (redirect to login)
+        if response.status_code in [401, 302]:
             return EGroupwareURLValidationResponse(valid=True, detail=None)
-        return EGroupwareURLValidationResponse(valid=False, detail="Invalid EGroupware URL")
+        elif response.status_code == 200:
+            # If we get 200, it might be a public instance or already logged in somehow
+            return EGroupwareURLValidationResponse(valid=True, detail=None)
+        else:
+            return EGroupwareURLValidationResponse(valid=False,
+                                                   detail=f"Unexpected status code: {response.status_code}")
     except requests.RequestException as e:
         return EGroupwareURLValidationResponse(valid=False, detail=f"Could not connect to EGroupware: {str(e)}")
 
