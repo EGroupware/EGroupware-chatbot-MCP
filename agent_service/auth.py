@@ -17,6 +17,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 # Create a JWT token with an expiration time
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -24,10 +25,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 # Verify EGroupware credentials by making a request to the addressbook endpoint
 def verify_egroupware_credentials(url: str, username: str, password: str) -> bool:
-    # Use the user-provided URL instead of the one from .env
-    test_url = f"{url.rstrip('/')}/addressbook/"
+    # Handle both base EGroupware URL and GroupDAV URL formats
+    if '/groupdav.php' in url:
+        # Extract base URL from GroupDAV URL
+        base_url = url.split('/groupdav.php')[0]
+    else:
+        base_url = url.rstrip('/')
+
+    test_url = f"{base_url}/addressbook/"
     try:
         response = requests.get(test_url, auth=(username, password), params={'limit': 1}, timeout=10)
         return response.status_code == 200
