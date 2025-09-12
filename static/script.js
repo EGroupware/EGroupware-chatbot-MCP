@@ -279,6 +279,25 @@ function setupChatPage() {
     const chatBox = document.getElementById('chat-box');
     const logoutBtn = document.getElementById('logout-btn');
     let eventSource = null;
+    let quickReplyContainer = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    const voiceBtn = document.getElementById('voice-btn');
+    let recording = false;
+    // Disable voice if provider not OpenAI (decode JWT payload)
+    try {
+        const rawToken = localStorage.getItem('accessToken');
+        if (rawToken) {
+            const parts = rawToken.split('.');
+            if (parts.length === 3) {
+                const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+                if (payload.provider_type && payload.provider_type !== 'openai' && voiceBtn) {
+                    voiceBtn.disabled = true;
+                    voiceBtn.title = 'Voice input available only with OpenAI provider';
+                }
+            }
+        }
+    } catch (_) { /* ignore decode issues */ }
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -304,6 +323,55 @@ function setupChatPage() {
         }
     });
 
+    if (voiceBtn && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        voiceBtn.addEventListener('click', toggleRecording);
+    }
+
+    async function toggleRecording() {
+        if (!recording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = handleRecordingStop;
+                mediaRecorder.start();
+                recording = true;
+                voiceBtn.classList.add('recording');
+            } catch (err) {
+                alert('Microphone access denied or unsupported.');
+            }
+        } else {
+            mediaRecorder.stop();
+            recording = false;
+            voiceBtn.classList.remove('recording');
+        }
+    }
+
+    async function handleRecordingStop() {
+        if (!audioChunks.length) return;
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        const token = localStorage.getItem('accessToken');
+        formData.append('token', token || '');
+        formData.append('audio', blob, 'voice.webm');
+        try {
+            voiceBtn.disabled = true;
+            const resp = await fetch('/transcribe', { method: 'POST', body: formData });
+            if (!resp.ok) throw new Error('Transcription failed');
+            const data = await resp.json();
+            if (data.text) {
+                if (messageInput.value) messageInput.value += (messageInput.value.endsWith(' ') ? '' : ' ') + data.text;
+                else messageInput.value = data.text;
+                messageInput.dispatchEvent(new Event('input'));
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            voiceBtn.disabled = false;
+        }
+    }
+
     chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const message = messageInput.value.trim();
@@ -314,7 +382,8 @@ function setupChatPage() {
         messageInput.style.height = 'auto'; // Reset textarea height
         messageInput.focus();
 
-        getAIResponse(message);
+    clearQuickReplies();
+    getAIResponse(message);
     });
 
     // The rest of the functions are the same as before.
@@ -335,6 +404,7 @@ function setupChatPage() {
         statusDiv.className = 'status-updates';
         messageElement.appendChild(mainTextP);
         messageElement.appendChild(statusDiv);
+    // Insert quick replies container after response finishes
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
         return { mainTextElement: mainTextP, statusElement: statusDiv };
@@ -378,6 +448,55 @@ function setupChatPage() {
 
         eventSource.addEventListener('end', () => {
              eventSource.close();
+             fetchSuggestions();
         });
     }
+
+    function ensureQuickReplyContainer() {
+        if (!quickReplyContainer) {
+            quickReplyContainer = document.createElement('div');
+            quickReplyContainer.className = 'quick-replies';
+            chatBox.appendChild(quickReplyContainer);
+        }
+        return quickReplyContainer;
+    }
+
+    function clearQuickReplies() {
+        if (quickReplyContainer) {
+            quickReplyContainer.remove();
+            quickReplyContainer = null;
+        }
+    }
+
+    async function fetchSuggestions() {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+        try {
+            const resp = await fetch(`/suggestions?token=${encodeURIComponent(token)}&count=4`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            renderQuickReplies(data.suggestions || []);
+        } catch (_) { /* silent */ }
+    }
+
+    function renderQuickReplies(suggestions) {
+        if (!suggestions.length) return;
+        const container = ensureQuickReplyContainer();
+        container.innerHTML = '';
+        suggestions.forEach(text => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-reply-btn';
+            btn.textContent = text;
+            btn.addEventListener('click', () => {
+                messageInput.value = text;
+                chatForm.requestSubmit();
+            });
+            container.appendChild(btn);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Fetch initial suggestions on load (for greeting state)
+    fetchSuggestions();
 }
