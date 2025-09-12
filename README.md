@@ -1,4 +1,4 @@
-# EGroupware AI (MCP)
+# EGroupware AI Assistant 
 
 A modern AI assistant that integrates with EGroupware to provide a conversational interface for accessing and managing EGroupware functionalities.
 
