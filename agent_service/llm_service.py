@@ -213,3 +213,40 @@ def get_streaming_chat_response(messages, tools, current_user_config):
     except Exception as e:
         print(f"Error calling LLM: {e}")
         raise
+
+def get_non_streaming_completion(
+    messages,
+    current_user_config,
+    model_override: str | None = None,
+    max_tokens: int = 256,
+    temperature: float = 0.7,
+) -> str:
+    """Non-streaming completion helper for quick suggestions.
+
+    Keeps parameters minimal; returns empty string on failure.
+    """
+    provider = Provider.create_provider(
+        provider_type=current_user_config.provider_type,
+        api_key=current_user_config.ai_key,
+        base_url=current_user_config.base_url,
+    )
+    try:
+        client = provider.get_client()
+        model = model_override or (
+            'gpt-4o-mini'
+            if current_user_config.provider_type == ProviderType.GITHUB.value
+            else 'gpt-3.5-turbo'
+        )
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+        )
+        if hasattr(resp, 'choices') and resp.choices:
+            return resp.choices[0].message.content or ""
+        return ""
+    except Exception as e:  # noqa: BLE001
+        print(f"Non-streaming completion error: {e}")
+        return ""
