@@ -1,3 +1,21 @@
+// Helper function to get the correct base path for the chatbot
+function getBasePath() {
+    const currentPath = window.location.pathname;
+    if (currentPath.startsWith('/chatbot/')) {
+        return '/chatbot';
+    }
+    return '';
+}
+
+// Helper function to create absolute URLs respecting the base path
+function createUrl(relativePath) {
+    const basePath = getBasePath();
+    if (relativePath.startsWith('/')) {
+        return basePath + relativePath;
+    }
+    return basePath + '/' + relativePath;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     // This script now only handles page routing and setup.
     // All theme logic has been removed.
@@ -7,13 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (path.includes('chat-ui')) {
         if (!token) {
-            window.location.href = '/'; // Not logged in, redirect to login
+            window.location.href = createUrl('/'); // Not logged in, redirect to login
         } else {
             setupChatPage(); // Logged in, set up the chat page
         }
     } else { // This handles the root path '/' and any other path
         if (token) {
-            window.location.href = '/chat-ui'; // Already logged in, redirect to chat
+            window.location.href = createUrl('/chat-ui'); // Already logged in, redirect to chat
         } else {
             setupLoginPage(); // Not logged in, set up the login page
         }
@@ -133,7 +151,7 @@ function setupLoginPage() {
             }
 
             try {
-                const response = await fetch('/validate/egroupware-url', {
+                const response = await fetch(createUrl('/validate/egroupware-url'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
@@ -245,7 +263,7 @@ function setupLoginPage() {
 
         try {
             const selectedProvider = aiModelSelect.value;
-            const response = await fetch('/token', {
+            const response = await fetch(createUrl('/token'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -260,7 +278,7 @@ function setupLoginPage() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.detail || 'Login failed.');
             localStorage.setItem('accessToken', data.access_token);
-            window.location.href = '/chat-ui';
+            window.location.href = createUrl('/chat-ui');
         } catch (error) {
             errorMessage.textContent = error.message;
         }
@@ -303,7 +321,7 @@ function setupChatPage() {
         logoutBtn.addEventListener('click', () => {
             if (eventSource) eventSource.close();
             localStorage.removeItem('accessToken');
-            window.location.href = '/';
+            window.location.href = createUrl('/');
         });
     }
 
@@ -357,7 +375,7 @@ function setupChatPage() {
         formData.append('audio', blob, 'voice.webm');
         try {
             voiceBtn.disabled = true;
-            const resp = await fetch('/transcribe', { method: 'POST', body: formData });
+            const resp = await fetch(createUrl('/transcribe'), { method: 'POST', body: formData });
             if (!resp.ok) throw new Error('Transcription failed');
             const data = await resp.json();
             if (data.text) {
@@ -414,14 +432,14 @@ function setupChatPage() {
         const token = localStorage.getItem('accessToken');
         if (!token) {
             alert('Your session has expired. Please log in again.');
-            window.location.href = '/';
+            window.location.href = createUrl('/');
             return;
         }
 
         const { mainTextElement, statusElement } = createBotMessageElements();
         mainTextElement.innerHTML = '<span class="blinking-cursor">...</span>';
 
-        const url = `/chat?message=${encodeURIComponent(message)}&token=${encodeURIComponent(token)}`;
+        const url = createUrl(`/chat?message=${encodeURIComponent(message)}&token=${encodeURIComponent(token)}`);
         eventSource = new EventSource(url);
         let firstChunk = true;
 
@@ -472,7 +490,7 @@ function setupChatPage() {
         const token = localStorage.getItem('accessToken');
         if (!token) return;
         try {
-            const resp = await fetch(`/suggestions?token=${encodeURIComponent(token)}&count=4`);
+            const resp = await fetch(createUrl(`/suggestions?token=${encodeURIComponent(token)}&count=4`));
             if (!resp.ok) return;
             const data = await resp.json();
             renderQuickReplies(data.suggestions || []);
