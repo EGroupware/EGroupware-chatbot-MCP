@@ -74,7 +74,16 @@ Thumbs.db
 *.tmp
 
 ############################
-# SSL (ignore all cert/key material) - Option A
+# SSL certificates and keys (important - don't commit!)
 ############################
 ssl/
 !ssl/README.md
+*.pem
+*.crt
+*.key
+
+############################
+# Server-specific configuration files
+############################
+chatbot-nginx-config.txt
+*-nginx-config.txt
