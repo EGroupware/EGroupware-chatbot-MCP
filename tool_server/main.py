@@ -62,6 +62,11 @@ class CreateTaskArgs(BaseModel):
     due_date: Optional[str] = None
     description: Optional[str] = None
 
+
+class ListTasksArgs(BaseModel):
+    status: Optional[str] = None
+    limit: Optional[int] = 50
+
 class SendEmailArgs(BaseModel):
     to: List[str]
     subject: str
@@ -85,6 +90,7 @@ tool_registry = {
     "create_event": (egw_calendar.create_event, CreateEventArgs),
     "list_events": (egw_calendar.list_events, ListEventsArgs),
     "create_task": (infolog.create_task, CreateTaskArgs),
+    "list_tasks": (infolog.list_tasks, ListTasksArgs),
     "send_email": (mail.send_email, SendEmailArgs),
     "get_company_info": (knowledge.get_company_info, None),
 }
