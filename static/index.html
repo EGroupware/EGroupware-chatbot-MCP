@@ -7,37 +7,129 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h2>EGroupware AI Assistant</h2>
-            <button id="logout-btn" title="Logout">
-                <!-- SVG Icon for Logout for a cleaner look -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </button>
-        </div>
-        <div id="chat-box" class="chat-box">
-             <div class="message bot-message">
-                <p class="main-response-text">
+    <div class="app-shell">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <div class="brand">
+                <img src="/static/logo.png" alt="EGroupware AI" onerror="this.style.display='none'" />
+                <h3>EGroupware AI</h3>
+                <span class="badge">Dashboard</span>
+            </div>
+                        <div class="quick-actions card">
+                <h4>QUICK ACTIONS</h4>
+                <div class="actions-grid">
+                    <button class="qa" data-action="new-event">New Event</button>
+                    <button class="qa" data-action="add-contact">Add Contact</button>
+                    <button class="qa" data-action="send-email">Send Email</button>
+                    <button id="qa-create-task" class="qa" data-action="create-task">Create Task</button>
+                </div>
+            </div>
+            <div class="quick-actions card">
+                <h4>Upcoming Events</h4>
+                <div class="muted">No upcoming events found.</div>
+            </div>
+        </aside>
+
+        <!-- Main content cards -->
+        <main class="main-content">
+            <div class="cards-grid">
+                <div id="card-events" class="card"> <h4>Today's Events</h4> <div id="events-count" class="big-number">0</div> </div>
+                <div id="card-emails" class="card"> <h4>Unread Emails</h4> <div id="emails-count" class="big-number">0</div> </div>
+                <div id="card-tasks" class="card"> <h4>Pending Tasks</h4> <div id="tasks-count" class="big-number">0</div> </div>
+                <div id="card-actions" class="card"> <h4>AI Actions</h4> <div id="actions-count" class="big-number">0</div> </div>
+                <div class="card wide">
+                    <h4>Recent Activity</h4>
+                    <ul class="activity-list">
+                        <li>Email sent to John Doe <span class="muted">2 minutes ago</span></li>
+                        <li>Meeting scheduled for tomorrow <span class="muted">15 minutes ago</span></li>
+                        <li>New contact added: Jane Smith <span class="muted">1 hour ago</span></li>
+                    </ul>
+                </div>
+                <div id="ai-insights-card" class="ai-insights card wide">
+                    <div class="ai-insights-header">
+                        <h4>AI INSIGHTS</h4>
+                        <div class="ai-insights-actions">
+                            <button id="insights-refresh" class="small-btn">Refresh</button>
+                            <button id="insights-expand" class="small-btn">Expand</button>
+                        </div>
+                    </div>
+                    <div id="ai-insight-box" class="insight-box scrollable">
+                        <div class="insight-loading">Loading insights...</div>
+                    </div>
+                    <div class="ai-insights-footer">
+                        <button id="insights-use-action" class="tiny-pill">Take Action</button>
+                    </div>
+                </div>
+    
+            </div>
+        </main>
+
+        <!-- Right Chat Panel -->
+        <aside class="chat-panel">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <h2>AI Assistant</h2>
+                    <div class="status"><span class="dot online"></span> Online</div>
+                </div>
+                <div class="chat-user">
+                    <div class="avatar">U</div>
+                </div>
+                <button id="logout-btn" class="logout-btn" title="Logout">
+                    <!-- logout icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+            </div>
+
+            <div id="chat-box" class="chat-box">
+                 <div class="message bot-message">
+                    <p class="main-response-text">
   Hello, I’m EGroupwareBot — your assistant for all company-related tasks and information.
   I can help you manage contacts, schedule meetings, create tasks, send emails, and answer questions about EGroupware.
   What would you like to do?
 </p>
-                <div class="status-updates"></div>
+                    <div class="status-updates"></div>
+                </div>
             </div>
-        </div>
-        <div class="chat-input-area">
-            <form id="chat-form">
-                <textarea id="message-input" placeholder="Ask the assistant..." rows="1"></textarea>
-                <button type="button" id="voice-btn" title="Hold to record / tap to toggle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="23"/><line x1="8" x2="16" y1="23" y2="23"/></svg>
-                </button>
-                <button type="submit" title="Send Message">
-                    <!-- SVG Icon for Send -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            </form>
-        </div>
+
+            <div class="quick-action-row">
+                <button class="pill">Show today's schedule</button>
+                <button class="pill">Create new contact</button>
+                <button class="pill">Send quick email</button>
+            </div>
+
+            <div class="chat-input-area">
+                <form id="chat-form">
+                    <textarea id="message-input" placeholder="Ask me anything..." rows="1"></textarea>
+                    <button type="button" id="voice-btn" title="Hold to record / tap to toggle">
+                        <!-- mic icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="23"/><line x1="8" x2="16" y1="23" y2="23"/></svg>
+                    </button>
+                    <button type="submit" title="Send Message">
+                        <!-- SVG Icon for Send -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </form>
+            </div>
+        </aside>
     </div>
     <script src="/static/script.js"></script>
+
+    <!-- Task creation modal -->
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <h3>Create Task</h3>
+            <form id="task-form">
+                <label>Title<input id="task-title" type="text" required></label>
+                <label>Due Date<input id="task-due" type="date"></label>
+                <label>Description<textarea id="task-desc" rows="4"></textarea></label>
+                <div class="modal-actions">
+                    <button type="button" id="task-cancel">Cancel</button>
+                    <button type="submit" id="task-submit">Create</button>
+                </div>
+            </form>
+            <div id="task-form-status" class="muted"></div>
+        </div>
+    </div>
 </body>
 </html>
