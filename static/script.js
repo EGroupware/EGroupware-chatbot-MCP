@@ -450,17 +450,23 @@ function setupChatPage() {
             }
             const data = JSON.parse(event.data);
             if (data.type === 'token') {
-                mainTextElement.textContent += data.content;
-            } else if (data.type === 'tool_call') {
-                statusElement.innerHTML += `<i>🤖 Calling tool: ${data.tool_name}...</i><br>`;
-            } else if (data.type === 'tool_result') {
-                statusElement.innerHTML += `<i>✅ Tool finished. Generating response...</i><br>`;
+                // Use innerHTML to allow HTML formatting, but sanitize for security
+                const sanitizedContent = data.content
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **bold**
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>') // *italic*
+                    .replace(/`(.*?)`/g, '<code>$1</code>') // `code`
+                    .replace(/^(\d+)\.\s+(.*)$/gm, '<br>$1. $2') // Numbered lists
+                    .replace(/^[-*]\s+(.*)$/gm, '<br>• $1') // Bullet points
+                    .replace(/\n/g, '<br>'); // line breaks
+                mainTextElement.innerHTML += sanitizedContent;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         };
 
         eventSource.onerror = () => {
-            mainTextElement.textContent = 'Error connecting to the server. Please check your connection and try again.';
+            mainTextElement.innerHTML = 'Error connecting to the server. Please check your connection and try again.';
             eventSource.close();
         };
 
@@ -517,4 +523,187 @@ function setupChatPage() {
 
     // Fetch initial suggestions on load (for greeting state)
     fetchSuggestions();
+
+    // Fetch dashboard data
+    fetchDashboardData();
 }
+
+
+// --- Dashboard helpers ---
+async function fetchDashboardData() {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    // Today's date range
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const start = `${yyyy}-${mm}-${dd}`;
+    const end = start;
+
+    try {
+        // Events
+        const evResp = await fetch(createUrl(`/api/events?start_date=${start}&end_date=${end}&token=${encodeURIComponent(token)}`));
+        if (evResp.ok) {
+            const evJson = await evResp.json();
+            const events = evJson.result || [];
+            const countEl = document.getElementById('events-count');
+            if (countEl) countEl.textContent = String((events && events.length) || 0);
+        }
+
+        // Tasks
+        const tResp = await fetch(createUrl(`/api/tasks?token=${encodeURIComponent(token)}&limit=10`));
+        if (tResp.ok) {
+            const tJson = await tResp.json();
+            const tasks = tJson.result || [];
+            const taskCountEl = document.getElementById('tasks-count');
+            if (taskCountEl) taskCountEl.textContent = String((tasks && tasks.length) || 0);
+        }
+
+        // AI insights (summary)
+        const aResp = await fetch(createUrl(`/api/ai-insights?token=${encodeURIComponent(token)}`));
+        if (aResp.ok) {
+            const aJson = await aResp.json();
+            const summary = aJson.result && aJson.result.summary ? aJson.result.summary : 'No insights available.';
+            renderAIInsights(summary);
+        }
+    } catch (e) {
+        console.error('Error fetching dashboard data', e);
+    }
+}
+
+// Quick action handlers: hook buttons to basic actions
+document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!target) return;
+    if (target.matches('.pill') || target.closest('.pill')) {
+        const btn = target.matches('.pill') ? target : target.closest('.pill');
+        const text = btn.textContent || '';
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.value = text;
+            messageInput.dispatchEvent(new Event('input'));
+        }
+    }
+});
+
+// --- AI Insights rendering and controls ---
+function renderAIInsights(text) {
+    const box = document.getElementById('ai-insight-box');
+    if (!box) return;
+    // Try to split into bullets if the LLM returned bullets or numbered lines
+    let html = '';
+    if (!text) text = 'No insights available.';
+    // Normalize common separators
+    const lines = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    // If there are multiple lines, render as paragraphs / bullets
+    if (lines.length > 1) {
+        html += '<div>';
+        lines.forEach((ln) => {
+            // Detect numbered lists or bullets
+            if (/^\d+\.|^\*|^-\s/.test(ln)) {
+                // convert to a list later
+            }
+        });
+        // Attempt to find bullet-like lines
+        const bullets = lines.filter(l => /^\d+\.|^\*|^-\s/.test(l));
+        if (bullets.length) {
+            html += '<ul>';
+            bullets.forEach(b => {
+                const cleaned = b.replace(/^\d+\.|^\*|^-\s/, '').trim();
+                html += `<li>${escapeHtml(cleaned)}</li>`;
+            });
+            html += '</ul>';
+        } else {
+            lines.forEach(l => html += `<p>${escapeHtml(l)}</p>`);
+        }
+        html += '</div>';
+    } else {
+        html = `<p>${escapeHtml(text)}</p>`;
+    }
+    box.innerHTML = html;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });
+}
+
+// Wire insight controls
+document.getElementById('insights-refresh')?.addEventListener('click', () => { fetchDashboardData(); });
+document.getElementById('insights-expand')?.addEventListener('click', () => {
+    const card = document.getElementById('ai-insights-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+});
+document.getElementById('insights-use-action')?.addEventListener('click', () => {
+    // Simple default: prefill chat input with a short prompt based on first insight
+    const box = document.getElementById('ai-insight-box');
+    const mi = document.getElementById('message-input');
+    if (box && mi) {
+        const text = box.textContent.trim().split('\n')[0] || 'Help me with the above';
+        mi.value = text;
+        mi.dispatchEvent(new Event('input'));
+        mi.focus();
+    }
+});
+
+// --- Task creation modal wiring ---
+const taskModal = document.getElementById('task-modal');
+const taskForm = document.getElementById('task-form');
+const taskTitle = document.getElementById('task-title');
+const taskDue = document.getElementById('task-due');
+const taskDesc = document.getElementById('task-desc');
+const taskCancel = document.getElementById('task-cancel');
+const taskStatus = document.getElementById('task-form-status');
+
+document.getElementById('qa-create-task')?.addEventListener('click', (e) => {
+    openTaskModal();
+});
+
+function openTaskModal() {
+    if (!taskModal) return;
+    taskModal.classList.remove('hidden');
+    taskTitle.value = '';
+    taskDue.value = '';
+    taskDesc.value = '';
+    if (taskStatus) taskStatus.textContent = '';
+}
+
+function closeTaskModal() {
+    if (!taskModal) return;
+    taskModal.classList.add('hidden');
+}
+
+taskCancel?.addEventListener('click', (e) => { closeTaskModal(); });
+taskModal?.addEventListener('click', (e) => {
+    if (e.target === taskModal || e.target.classList.contains('modal-backdrop')) closeTaskModal();
+});
+
+taskForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = taskTitle.value.trim();
+    if (!title) { if (taskStatus) taskStatus.textContent = 'Title is required.'; return; }
+    const due = taskDue.value || null;
+    const desc = taskDesc.value || null;
+    const token = localStorage.getItem('accessToken');
+    if (!token) { if (taskStatus) taskStatus.textContent = 'Session expired, please log in again.'; return; }
+
+    try {
+        taskStatus.textContent = 'Creating task...';
+        const resp = await fetch(createUrl(`/api/tasks/create?token=${encodeURIComponent(token)}`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, due_date: due, description: desc })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data?.result?.message || data?.detail || 'Failed to create task');
+        taskStatus.textContent = 'Task created successfully.';
+        // Refresh dashboard counts
+        fetchDashboardData();
+        setTimeout(() => closeTaskModal(), 800);
+    } catch (err) {
+        console.error('Task creation error', err);
+        if (taskStatus) taskStatus.textContent = String(err.message || err);
+    }
+});
