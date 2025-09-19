@@ -10,13 +10,15 @@ services:
     # Internal only now (exposed through nginx reverse proxy for HTTPS)
     env_file:
       - .env
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DEV_BYPASS=${DEV_BYPASS}
+      - TZ=Europe/Berlin
     depends_on:
       - tool-server
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    environment:
-      - TZ=Europe/Berlin
     networks:
       - chatbot-net
     restart: always
@@ -30,11 +32,13 @@ services:
     # Internal only now (exposed through nginx reverse proxy for HTTPS)
     env_file:
       - .env
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DEV_BYPASS=${DEV_BYPASS}
+      - TZ=Europe/Berlin
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    environment:
-      - TZ=Europe/Berlin
     networks:
       - chatbot-net
     restart: always

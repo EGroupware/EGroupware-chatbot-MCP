@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EGroupware Chatbot</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>EGroupware AI Dashboard</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+<<<<<<< Updated upstream
 <body>
     <div class="app-shell">
         <!-- Left Sidebar -->
@@ -131,5 +135,254 @@
             <div id="task-form-status" class="muted"></div>
         </div>
     </div>
+=======
+<body class="dashboard-body">
+    <div class="dashboard-wrapper">
+        <!-- Top Navigation Bar -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <div class="logo">
+                    <div class="logo-icon">🚀</div>
+                    <h1>EGroupware AI</h1>
+                </div>
+                <div class="breadcrumb">
+                    <span class="breadcrumb-item active">Dashboard</span>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="user-profile">
+                    <div class="user-avatar">👤</div>
+                    <span class="user-name" id="user-name">User</span>
+                </div>
+                <button id="logout-btn" class="logout-btn" title="Logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Quick Actions</h3>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" id="new-event-btn">
+                            <div class="action-icon">📅</div>
+                            <span>New Event</span>
+                        </button>
+                        <button class="quick-action-btn" id="add-contact-btn">
+                            <div class="action-icon">👤</div>
+                            <span>Add Contact</span>
+                        </button>
+                        <button class="quick-action-btn" id="compose-email-btn">
+                            <div class="action-icon">✉️</div>
+                            <span>Send Email</span>
+                        </button>
+                        <button class="quick-action-btn" id="create-task-btn">
+                            <div class="action-icon">✅</div>
+                            <span>Create Task</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">AI Insights</h3>
+                    <div class="insights-card">
+                        <div class="insights-content" id="ai-insights">
+                            <div class="loading-spinner"></div>
+                            <p>Loading insights...</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-header">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-menu">⋯</div>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-title">Today's Events</h3>
+                            <div class="stat-value" id="today-events-count">0</div>
+                            <div class="stat-change positive">
+                                <span class="change-indicator">↗</span>
+                                <span class="change-text">2 upcoming</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card success">
+                        <div class="stat-header">
+                            <div class="stat-icon">✉️</div>
+                            <div class="stat-menu">⋯</div>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-title">Unread Emails</h3>
+                            <div class="stat-value" id="unread-emails-count">0</div>
+                            <div class="stat-change neutral">
+                                <span class="change-indicator">→</span>
+                                <span class="change-text">No change</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card warning">
+                        <div class="stat-header">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-menu">⋯</div>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-title">Pending Tasks</h3>
+                            <div class="stat-value" id="pending-tasks-count">0</div>
+                            <div class="stat-change negative">
+                                <span class="change-indicator">↘</span>
+                                <span class="change-text">3 overdue</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card info">
+                        <div class="stat-header">
+                            <div class="stat-icon">🤖</div>
+                            <div class="stat-menu">⋯</div>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-title">AI Actions</h3>
+                            <div class="stat-value" id="ai-actions-count">0</div>
+                            <div class="stat-change positive">
+                                <span class="change-indicator">↗</span>
+                                <span class="change-text">24h active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Panels -->
+                <div class="content-grid">
+                    <div class="content-panel wide">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Recent Activity</h3>
+                            <div class="panel-actions">
+                                <button class="panel-action-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M3 12h18M3 18h18"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <div class="activity-list" id="recent-activities">
+                                <div class="activity-item">
+                                    <div class="activity-icon">📧</div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Email sent to John Doe</p>
+                                        <p class="activity-time">2 minutes ago</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon">📅</div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Meeting scheduled for tomorrow</p>
+                                        <p class="activity-time">15 minutes ago</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon">👤</div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">New contact added: Jane Smith</p>
+                                        <p class="activity-time">1 hour ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Upcoming Events</h3>
+                            <button class="panel-action-btn">View All</button>
+                        </div>
+                        <div class="panel-content">
+                            <div class="events-list" id="upcoming-events-list">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📅</div>
+                                    <p>No upcoming events</p>
+                                    <button class="empty-action-btn">Schedule Meeting</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Chat Panel -->
+            <aside class="chat-panel">
+                <div class="chat-header">
+                    <h3>AI Assistant</h3>
+                    <div class="chat-status online">
+                        <div class="status-dot"></div>
+                        <span>Online</span>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chat-box">
+                    <div class="message bot-message">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <p>Hello! I'm your EGroupware AI Assistant. I can help you manage contacts, schedule meetings, create tasks, send emails, and answer questions about your workspace.</p>
+                            <div class="message-time">Just now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-suggestions" id="chat-suggestions">
+                    <button class="suggestion-btn">Show today's schedule</button>
+                    <button class="suggestion-btn">Create new contact</button>
+                    <button class="suggestion-btn">Send quick email</button>
+                </div>
+
+                <div class="chat-input-container">
+                    <form id="chat-form" class="chat-form">
+                        <div class="input-wrapper">
+                            <textarea
+                                id="message-input"
+                                placeholder="Ask me anything..."
+                                rows="1"
+                                maxlength="1000"
+                            ></textarea>
+                            <div class="input-actions">
+                                <button type="button" id="voice-btn" class="voice-btn" title="Voice input">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                        <line x1="12" x2="12" y1="19" y2="23"/>
+                                        <line x1="8" x2="16" y1="23" y2="23"/>
+                                    </svg>
+                                </button>
+                                <button type="submit" class="send-btn" title="Send message">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+>>>>>>> Stashed changes
 </body>
 </html>

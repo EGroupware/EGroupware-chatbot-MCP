@@ -73,7 +73,7 @@ function setupLoginPage() {
         'github': {
             needsBaseUrl: true,
             keyHint: 'Enter your GitHub Personal Access Token',
-            validateKey: (key) => key.startsWith('ghp_') || key.startsWith('github_pat_'),
+            validateKey: (key) => (key && (key.startsWith('ghp_') || key.startsWith('github_pat_'))),
             defaultBaseUrl: 'https://models.github.ai/inference',
             baseUrlHint: 'GitHub AI models endpoint'
         },
@@ -285,10 +285,10 @@ function setupLoginPage() {
     });
 
     // Initially set up for default provider (OpenAI)
-    aiModelSelect.dispatchEvent(new Event('change'));
+    aiModelSelect && aiModelSelect.dispatchEvent(new Event('change'));
 
     // Initially disable submit button
-    submitButton.disabled = true;
+    submitButton && (submitButton.disabled = true);
 }
 
 function setupChatPage() {
@@ -414,18 +414,34 @@ function setupChatPage() {
     }
 
     function createBotMessageElements() {
+        // Create message wrapper with avatar and content to match CSS
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', 'bot-message');
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = '🤖';
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+
         const mainTextP = document.createElement('p');
         mainTextP.className = 'main-response-text';
+
         const statusDiv = document.createElement('div');
         statusDiv.className = 'status-updates';
-        messageElement.appendChild(mainTextP);
-        messageElement.appendChild(statusDiv);
-    // Insert quick replies container after response finishes
+
+        // Assemble structure
+        content.appendChild(mainTextP);
+        content.appendChild(statusDiv);
+        messageElement.appendChild(avatar);
+        messageElement.appendChild(content);
+
+        // Insert into chat box
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
-        return { mainTextElement: mainTextP, statusElement: statusDiv };
+
+        return { mainTextElement: mainTextP, statusElement: statusDiv, contentElement: content };
     }
 
     async function getAIResponse(message) {
@@ -504,7 +520,7 @@ function setupChatPage() {
     }
 
     function renderQuickReplies(suggestions) {
-        if (!suggestions.length) return;
+        if (!suggestions || !suggestions.length) return;
         const container = ensureQuickReplyContainer();
         container.innerHTML = '';
         suggestions.forEach(text => {
@@ -520,6 +536,132 @@ function setupChatPage() {
         });
         chatBox.scrollTop = chatBox.scrollHeight;
     }
+
+    // Fetch and render dashboard overview (events, emails, AI insights)
+    async function fetchOverview() {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+        try {
+            const resp = await fetch(createUrl(`/api/overview?token=${encodeURIComponent(token)}`));
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            // --- Events ---
+            let eventsCount = 0;
+            const upcomingContainer = document.getElementById('upcoming-events-list');
+            if (data.events) {
+                // data.events may be an array or an object
+                if (Array.isArray(data.events)) {
+                    eventsCount = data.events.length;
+                    upcomingContainer.innerHTML = '';
+                    if (!eventsCount) upcomingContainer.innerHTML = '<div class="empty">No upcoming events found.</div>';
+                    data.events.forEach(ev => {
+                        const title = ev.title || ev.summary || ev.uid || 'Untitled';
+                        const when = ev.start || ev.date || '';
+                        const li = document.createElement('div');
+                        li.className = 'list-item';
+                        li.textContent = `${title} ${when ? ' — ' + when : ''}`;
+                        upcomingContainer.appendChild(li);
+                    });
+                } else if (typeof data.events === 'object') {
+                    // Try to parse common shapes
+                    const evs = data.events.responses || data.events.events || data.events || [];
+                    if (Array.isArray(evs)) {
+                        eventsCount = evs.length;
+                        upcomingContainer.innerHTML = '';
+                        if (!eventsCount) upcomingContainer.innerHTML = '<div class="empty">No upcoming events found.</div>';
+                        evs.forEach(ev => {
+                            const title = ev.title || ev.summary || ev.uid || 'Untitled';
+                            const when = ev.start || ev.date || '';
+                            const li = document.createElement('div');
+                            li.className = 'list-item';
+                            li.textContent = `${title} ${when ? ' — ' + when : ''}`;
+                            upcomingContainer.appendChild(li);
+                        });
+                    } else if (typeof evs === 'object') {
+                        const keys = Object.keys(evs || {});
+                        eventsCount = keys.length;
+                        upcomingContainer.innerHTML = '';
+                        if (!eventsCount) upcomingContainer.innerHTML = '<div class="empty">No upcoming events found.</div>';
+                        keys.slice(0,5).forEach(k => {
+                            const ev = evs[k];
+                            const title = ev.title || ev.summary || ev.uid || k;
+                            const when = ev.start || ev.date || '';
+                            const li = document.createElement('div');
+                            li.className = 'list-item';
+                            li.textContent = `${title} ${when ? ' — ' + when : ''}`;
+                            upcomingContainer.appendChild(li);
+                        });
+                    }
+                }
+            }
+            document.getElementById('today-events-count').textContent = eventsCount;
+
+            // --- Emails ---
+            let unreadCount = 0;
+            const unreadEl = document.getElementById('unread-emails-count');
+            if (data.emails) {
+                const msgs = data.emails.messages || (Array.isArray(data.emails) ? data.emails : []);
+                if (Array.isArray(msgs)) {
+                    unreadCount = msgs.filter(m => !m.seen).length;
+                }
+            }
+            unreadEl.textContent = unreadCount;
+
+            // --- AI Actions / Insights ---
+            const aiList = document.getElementById('ai-actions-list');
+            const aiCountEl = document.getElementById('ai-actions-count');
+            aiList.innerHTML = '';
+            let aiCount = 0;
+            if (data.insights) {
+                const box = document.createElement('div');
+                box.className = 'insight-box';
+                box.textContent = data.insights;
+                aiList.appendChild(box);
+                aiCount = 1;
+            } else {
+                aiList.innerHTML = '<div class="empty">No recent actions. Start chatting with the AI assistant.</div>';
+            }
+            aiCountEl.textContent = aiCount;
+
+        } catch (err) {
+            console.error('Overview fetch failed', err);
+        }
+    }
+
+    // Wire quick action buttons to prefill and submit chat commands
+    function wireQuickActions() {
+        const newEventBtn = document.getElementById('new-event-btn');
+        const addContactBtn = document.getElementById('add-contact-btn');
+        const composeEmailBtn = document.getElementById('compose-email-btn');
+        const createTaskBtn = document.getElementById('create-task-btn');
+
+        if (newEventBtn) newEventBtn.addEventListener('click', () => {
+            const template = 'Create an event titled "Meeting with team" tomorrow at 3pm for 60 minutes.';
+            messageInput.value = template;
+            chatForm.requestSubmit();
+        });
+        if (addContactBtn) addContactBtn.addEventListener('click', () => {
+            const template = 'Add a contact: Name: , Email: , Phone: .';
+            messageInput.value = template;
+            messageInput.focus();
+        });
+        if (composeEmailBtn) composeEmailBtn.addEventListener('click', () => {
+            const template = 'Send an email to [recipient@example.com] with subject "" and body "".';
+            messageInput.value = template;
+            messageInput.focus();
+        });
+        if (createTaskBtn) createTaskBtn.addEventListener('click', () => {
+            const template = 'Create a task: Title: , Due: YYYY-MM-DD, Description: .';
+            messageInput.value = template;
+            messageInput.focus();
+        });
+    }
+
+    // Initial dashboard load and polling
+    fetchOverview();
+    wireQuickActions();
+    setInterval(fetchOverview, 60 * 1000); // Refresh every 60s
 
     // Fetch initial suggestions on load (for greeting state)
     fetchSuggestions();

@@ -3,14 +3,13 @@ import os
 from typing import AsyncGenerator
 import requests
 import openai
-from datetime import datetime
+from datetime import datetime, date
+import json as _json
 
 from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field
-
-from fastapi.staticfiles import StaticFiles
 
 from . import auth, llm_service, prompts, schemas
 from .schemas import LoginRequest
@@ -18,7 +17,148 @@ from .schemas import LoginRequest
 load_dotenv()
 
 app = FastAPI(title="EGroupware Agent Service", root_path="/chatbot")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Mount static files with absolute path - but we'll use explicit endpoints instead
+import pathlib
+import os
+
+# Use absolute path from container root
+static_dir = pathlib.Path("/app/static")
+
+
+# Explicit static file serving endpoints with better error handling
+@app.get("/static/style.css", include_in_schema=False)
+async def serve_css():
+    try:
+        # Try multiple possible paths
+        possible_paths = [
+            pathlib.Path("/app/static/style.css"),
+            pathlib.Path("static/style.css"),
+            pathlib.Path(__file__).parent.parent / "static" / "style.css"
+        ]
+
+        content = None
+        for path in possible_paths:
+            try:
+                if path.exists():
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    break
+            except:
+                continue
+
+        if content:
+            return Response(content=content, media_type="text/css")
+        else:
+            # Fallback CSS if file not found
+            fallback_css = """
+/* Fallback CSS */
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; }
+.dashboard-body { height: 100vh; background: #f5f5f5; }
+.dashboard-wrapper { max-width: 1200px; margin: 0 auto; }
+.top-nav { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.dashboard-content { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 1rem; }
+.sidebar, .main-content, .chat-panel { background: white; padding: 1rem; border-radius: 8px; }
+"""
+            return Response(content=fallback_css, media_type="text/css")
+
+    except Exception as e:
+        # Return minimal CSS to ensure some styling
+        minimal_css = """
+body { font-family: system-ui; margin: 0; padding: 16px; background: #f8fafc; }
+.dashboard-wrapper { max-width: 1400px; margin: 0 auto; }
+.top-nav { background: white; padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.dashboard-content { display: grid; grid-template-columns: 280px 1fr 350px; gap: 16px; }
+.sidebar, .main-content, .chat-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #6366f1; }
+.stat-value { font-size: 2rem; font-weight: bold; color: #1f2937; }
+.chat-messages { height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.message { margin-bottom: 16px; }
+.message-content { background: #f3f4f6; padding: 12px; border-radius: 8px; }
+#message-input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; }
+"""
+        return Response(content=minimal_css, media_type="text/css")
+
+@app.get("/static/script.js", include_in_schema=False)
+async def serve_js():
+    try:
+        # Try multiple possible paths
+        possible_paths = [
+            pathlib.Path("/app/static/script.js"),
+            pathlib.Path("static/script.js"),
+            pathlib.Path(__file__).parent.parent / "static" / "script.js"
+        ]
+
+        content = None
+        for path in possible_paths:
+            try:
+                if path.exists():
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    break
+            except:
+                continue
+
+        if content:
+            return Response(content=content, media_type="application/javascript")
+        else:
+            # Fallback JavaScript
+            fallback_js = """
+// Fallback JavaScript
+console.log('Loading fallback JavaScript...');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard loaded with fallback JS');
+    
+    // Basic form handling
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Chat form submitted');
+        });
+    }
+});
+"""
+            return Response(content=fallback_js, media_type="application/javascript")
+
+    except Exception as e:
+        return Response(content="console.log('JS loading error');", media_type="application/javascript")
+
+# Debug endpoint to check static file paths
+@app.get("/debug/static", include_in_schema=False)
+async def debug_static():
+    import os
+
+    cwd = os.getcwd()
+
+    # Check multiple possible paths
+    paths_to_check = [
+        "/app/static",
+        "static",
+        str(pathlib.Path(__file__).parent.parent / "static")
+    ]
+
+    path_results = {}
+    for path in paths_to_check:
+        try:
+            p = pathlib.Path(path)
+            path_results[str(path)] = {
+                "exists": p.exists(),
+                "is_dir": p.is_dir() if p.exists() else False,
+                "files": [f.name for f in p.iterdir()] if p.exists() and p.is_dir() else []
+            }
+        except Exception as e:
+            path_results[str(path)] = {"error": str(e)}
+
+    return {
+        "cwd": cwd,
+        "paths_checked": path_results,
+        "__file__": __file__,
+        "parent": str(pathlib.Path(__file__).parent.parent)
+    }
+
 
 chat_histories = {}
 TOOL_SERVER_URL = os.getenv("TOOL_SERVER_URL")
@@ -35,7 +175,7 @@ def call_tool_server(tool_name: str, args: dict, user_credentials: schemas.Token
     auth_payload = {
         "username": user_credentials.username,
         "password": user_credentials.password,
-        "egw_url": user_credentials.egw_url
+        "egw_url": user_credentials.egw_url,
     }
 
     payload = {"auth": auth_payload, "args": args}
@@ -57,37 +197,37 @@ def call_tool_server(tool_name: str, args: dict, user_credentials: schemas.Token
 # Basic routes for user interface
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_login():
-    with open("static/login.html") as f:
+    with open(static_dir / "login.html") as f:
         return HTMLResponse(content=f.read())
 
 
 @app.get("/chat-ui", response_class=HTMLResponse, include_in_schema=False)
 async def read_chat_ui():
-    with open("static/index.html") as f:
+    with open(static_dir / "index.html") as f:
         return HTMLResponse(content=f.read())
 
 
 # User authentication route
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(
-        login_data: LoginRequest
+    login_data: LoginRequest
 ):
     # Save credentials to in-memory storage if they're valid
     if not auth.verify_and_save_credentials(
-            username=login_data.username,
-            password=login_data.password,
-            egw_url=login_data.egw_url
+        username=login_data.username,
+        password=login_data.password,
+        egw_url=login_data.egw_url,
     ):
         raise HTTPException(
             status_code=401,
-            detail="Invalid EGroupware URL or credentials."
+            detail="Invalid EGroupware URL or credentials.",
         )
 
     # Validate provider configuration
     if login_data.provider_type not in [p.value for p in llm_service.ProviderType]:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid provider type: {login_data.provider_type}"
+            detail=f"Invalid provider type: {login_data.provider_type}",
         )
 
     # Check if base_url is required but not provided
@@ -96,11 +236,11 @@ async def login_for_access_token(
         if login_data.provider_type in [
             llm_service.ProviderType.IONOS.value,
             llm_service.ProviderType.AZURE.value,
-            llm_service.ProviderType.OPENROUTER.value
+            llm_service.ProviderType.OPENROUTER.value,
         ]:
             raise HTTPException(
                 status_code=400,
-                detail=f"Base URL is required for {login_data.provider_type} provider"
+                detail=f"Base URL is required for {login_data.provider_type} provider",
             )
 
     # Create the JWT payload with all the session configuration
@@ -110,7 +250,7 @@ async def login_for_access_token(
         "egw_url": login_data.egw_url,
         "ai_key": login_data.ai_key,
         "provider_type": login_data.provider_type,
-        "base_url": login_data.base_url
+        "base_url": login_data.base_url,
     }
 
     # Create the token
@@ -132,7 +272,7 @@ tool_definitions = [
                     "phone": {"type": "string"},
                     "company": {"type": "string"},
                     "address": {"type": "string"},
-                    "notes": {"type": "string"}
+                    "notes": {"type": "string"},
                 },
                 "required": ["full_name", "email"],
             },
@@ -165,14 +305,14 @@ tool_definitions = [
                         "description": "Maximum number of contacts to return (default: 50, max: 100)",
                         "minimum": 1,
                         "maximum": 100,
-                        "default": 50
+                        "default": 50,
                     },
                     "offset": {
                         "type": "integer",
                         "description": "Number of contacts to skip for pagination (default: 0)",
                         "minimum": 0,
-                        "default": 0
-                    }
+                        "default": 0,
+                    },
                 },
                 "required": [],
             },
@@ -189,26 +329,26 @@ tool_definitions = [
                     "to": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "A list of primary recipient email addresses."
+                        "description": "A list of primary recipient email addresses.",
                     },
                     "subject": {
                         "type": "string",
-                        "description": "The subject line of the email."
+                        "description": "The subject line of the email.",
                     },
                     "body": {
                         "type": "string",
-                        "description": "The plain text body content of the email."
+                        "description": "The plain text body content of the email.",
                     },
                     "cc": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "A list of CC recipient email addresses."
+                        "description": "A list of CC recipient email addresses.",
                     },
                     "bcc": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "A list of BCC recipient email addresses."
-                    }
+                        "description": "A list of BCC recipient email addresses.",
+                    },
                 },
                 "required": ["to", "subject"],
             },
@@ -224,33 +364,33 @@ tool_definitions = [
                 "properties": {
                     "title": {
                         "type": "string",
-                        "description": "The title or subject of the event."
+                        "description": "The title or subject of the event.",
                     },
                     "start_datetime": {
                         "type": "string",
-                        "description": "The start date and time in 'YYYY-MM-DD HH:MM:SS' format."
+                        "description": "The start date and time in 'YYYY-MM-DD HH:MM:SS' format.",
                     },
                     "end_datetime": {
                         "type": "string",
-                        "description": "The end date and time in 'YYYY-MM-DD HH:MM:SS' format. The AI must calculate this if the user provides a duration (e.g., 'for 90 minutes')."
+                        "description": "The end date and time in 'YYYY-MM-DD HH:MM:SS' format. The AI must calculate this if the user provides a duration (e.g., 'for 90 minutes').",
                     },
                     "time_zone": {
                         "type": "string",
-                        "description": "The IANA Time Zone for the event (e.g., 'Europe/Berlin', 'America/New_York'). If the user doesn't specify one, you should ask or infer it. Defaults to 'UTC' if not provided."
+                        "description": "The IANA Time Zone for the event (e.g., 'Europe/Berlin', 'America/New_York'). If the user doesn't specify one, you should ask or infer it. Defaults to 'UTC' if not provided.",
                     },
                     "description": {
                         "type": "string",
-                        "description": "A detailed agenda for the event."
+                        "description": "A detailed agenda for the event.",
                     },
                     "location": {
                         "type": "string",
-                        "description": "The physical location or online meeting link."
+                        "description": "The physical location or online meeting link.",
                     },
                     "attendees": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "A list of email addresses for people to invite."
-                    }
+                        "description": "A list of email addresses for people to invite.",
+                    },
                 },
                 "required": ["title", "start_datetime", "end_datetime"],
             },
@@ -265,7 +405,7 @@ tool_definitions = [
                 "type": "object",
                 "properties": {
                     "start_date": {"type": "string", "description": "Start date in YYYY-MM-DD format."},
-                    "end_date": {"type": "string", "description": "End date in YYYY-MM-DD format."}
+                    "end_date": {"type": "string", "description": "End date in YYYY-MM-DD format."},
                 },
                 "required": ["start_date", "end_date"],
             },
@@ -281,22 +421,21 @@ tool_definitions = [
                 "properties": {
                     "title": {
                         "type": "string",
-                        "description": "The title or subject of the task."
+                        "description": "The title or subject of the task.",
                     },
                     "due_date": {
                         "type": "string",
-                        "description": "The due date for the task, in 'YYYY-MM-DD' format."
+                        "description": "The due date for the task, in 'YYYY-MM-DD' format.",
                     },
                     "description": {
                         "type": "string",
-                        "description": "A detailed description of the task."
-                    }
+                        "description": "A detailed description of the task.",
+                    },
                 },
                 "required": ["title"],
             },
         },
     },
-
     {
         "type": "function",
         "function": {
@@ -388,18 +527,18 @@ class SuggestionResponse(BaseModel):
     summary="Generate quick reply suggestions",
 )
 async def get_suggestions(
-        token: str = Query(...),
-        count: int = Query(3, ge=1, le=6)
+    token: str = Query(...),
+    count: int = Query(3, ge=1, le=6)
 ):
     current_user = await auth.get_current_user(token)
     history = chat_histories.get(current_user.username)
     if not history:
         # Provide generic starters if no history
         return SuggestionResponse(suggestions=[
-                                                  "Show my upcoming meetings",
-                                                  "Add a new contact",
-                                                  "Create a task for next week"
-                                              ][:count])
+            "Show my upcoming meetings",
+            "Add a new contact",
+            "Create a task for next week"
+        ][:count])
 
     # Build condensed recent context (last 6 turns)
     recent = []
@@ -424,7 +563,6 @@ async def get_suggestions(
     )
     suggestions: list[str] = []
     if raw:
-        import json as _json
         try:
             # Extract JSON array heuristically
             start = raw.find('[')
@@ -438,10 +576,10 @@ async def get_suggestions(
             pass
     if not suggestions:
         suggestions = [
-                          "List my upcoming events",
-                          "Create a new InfoLog task",
-                          "Search contacts for 'John'"
-                      ][:count]
+            "List my upcoming events",
+            "Create a new InfoLog task",
+            "Search contacts for 'John'"
+        ][:count]
     return SuggestionResponse(suggestions=suggestions)
 
 
@@ -482,8 +620,8 @@ async def transcribe_audio(token: str = Form(...), audio: UploadFile = File(...)
 @app.get("/chat", response_class=StreamingResponse, tags=["Chat"], summary="Chat with the EGroupware Agent",
          description="Streams chat responses from the EGroupware Agent. Requires a valid token.")
 async def chat_endpoint(
-        message: str = Query(..., description="The user's message to the agent."),
-        token: str = Query(..., description="Authentication token for the user.")
+    message: str = Query(..., description="The user's message to the agent."),
+    token: str = Query(..., description="Authentication token for the user.")
 ):
     """
     Streams chat responses from the EGroupware Agent. Requires a valid token.
@@ -510,7 +648,7 @@ class EGroupwareURLValidationResponse(BaseModel):
     description="Checks if the provided EGroupware URL is reachable and requires authentication."
 )
 async def validate_egroupware_url(
-        data: EGroupwareURLValidationRequest = Body(..., example={"url": "https://demo.egroupware.org/egroupware"})
+    data: EGroupwareURLValidationRequest = Body(..., example={"url": "https://demo.egroupware.org/egroupware"})
 ):
     """
     Checks if the provided EGroupware URL is reachable and requires authentication.

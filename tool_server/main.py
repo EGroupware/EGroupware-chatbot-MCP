@@ -92,6 +92,7 @@ tool_registry = {
     "create_task": (infolog.create_task, CreateTaskArgs),
     "list_tasks": (infolog.list_tasks, ListTasksArgs),
     "send_email": (mail.send_email, SendEmailArgs),
+    "list_emails": (mail.list_emails, ListEmailsArgs),
     "get_company_info": (knowledge.get_company_info, None),
 }
 
