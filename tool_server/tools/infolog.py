@@ -4,6 +4,44 @@ from typing import Optional
 import re
 
 
+def list_tasks(base_url: str, auth: tuple, status: Optional[str] = None, limit: int = 50):
+    """
+    Retrieve a list of tasks from the user's InfoLog.
+    """
+    url = f"{base_url}/infolog/"
+    try:
+        params = {}
+        if status:
+            params['status'] = status
+        response = requests.get(url, auth=auth, params=params, headers={"Accept": "application/json"})
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract items - EGroupware returns a 'responses' mapping similar to calendar
+        responses = data.get('responses', {}) if isinstance(data, dict) else {}
+        tasks = []
+        for _, t in responses.items():
+            if not t or not isinstance(t, dict):
+                continue
+            tasks.append({
+                'id': t.get('id') or t.get('uid'),
+                'title': t.get('title'),
+                'description': t.get('description'),
+                'due': t.get('due'),
+                'status': t.get('status')
+            })
+            if len(tasks) >= limit:
+                break
+        return json.dumps(tasks)
+    except requests.exceptions.HTTPError as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"API Error: {e.response.status_code} - {e.response.text}"
+        })
+    except Exception as e:
+        return json.dumps({"status": "error", "message": f"Unexpected error: {str(e)}"})
+
+
 def create_task(
         base_url: str,
         auth: tuple,

@@ -592,3 +592,82 @@ async def validate_ai_key(data: dict):
             "detail": f"Invalid API key or configuration: {str(e)}",
             "provider_type": provider_type
         }
+
+
+# --- Agent-facing helper endpoints for the frontend to fetch real data ---
+
+
+@app.get('/api/events', tags=['API'])
+async def api_list_events(start_date: str = Query(...), end_date: str = Query(...), token: str = Query(...)):
+    """Return calendar events between start_date and end_date for the authenticated user."""
+    current_user = await auth.get_current_user(token)
+    result = call_tool_server('list_events', {'start_date': start_date, 'end_date': end_date}, current_user)
+    # call_tool_server returns either JSON string or an error string
+    try:
+        parsed = json.loads(result) if isinstance(result, str) else result
+    except Exception:
+        parsed = {'error': str(result)}
+    return JSONResponse(content={'result': parsed})
+
+
+@app.get('/api/tasks', tags=['API'])
+async def api_list_tasks(token: str = Query(...), status: str | None = Query(None), limit: int = Query(50)):
+    """Return tasks from InfoLog for the authenticated user."""
+    current_user = await auth.get_current_user(token)
+    args = {'status': status, 'limit': limit}
+    result = call_tool_server('list_tasks', args, current_user)
+    try:
+        parsed = json.loads(result) if isinstance(result, str) else result
+    except Exception:
+        parsed = {'error': str(result)}
+    return JSONResponse(content={'result': parsed})
+
+
+class CreateTaskRequest(BaseModel):
+    title: str
+    due_date: str | None = None
+    description: str | None = None
+
+
+@app.post('/api/tasks/create', tags=['API'])
+async def api_create_task(payload: CreateTaskRequest, token: str = Query(...)):
+    """Create a new task in InfoLog for the authenticated user."""
+    current_user = await auth.get_current_user(token)
+    args = payload.dict(exclude_unset=True)
+    result = call_tool_server('create_task', args, current_user)
+    try:
+        parsed = json.loads(result) if isinstance(result, str) else result
+    except Exception:
+        parsed = {'error': str(result)}
+    return JSONResponse(content={'result': parsed})
+
+
+@app.get('/api/ai-insights', tags=['API'])
+async def api_ai_insights(token: str = Query(...)):
+    """Fetch company knowledge and return a short AI-generated insight summary."""
+    current_user = await auth.get_current_user(token)
+    # First get company knowledge
+    knowledge_raw = call_tool_server('get_company_info', {}, current_user)
+    try:
+        knowledge_parsed = json.loads(knowledge_raw) if isinstance(knowledge_raw, str) else knowledge_raw
+        content = ''
+        if isinstance(knowledge_parsed, dict) and knowledge_parsed.get('status') == 'success':
+            content = knowledge_parsed.get('content', '')
+        elif isinstance(knowledge_parsed, dict) and knowledge_parsed.get('content'):
+            content = knowledge_parsed.get('content')
+        elif isinstance(knowledge_parsed, str):
+            # If the tool returned a raw string
+            content = knowledge_parsed
+    except Exception:
+        content = str(knowledge_raw)
+
+    # Ask the LLM for a short summary / insights
+    system_prompt = prompts.get_system_prompt()
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Summarize the following company knowledge in 3 bullet points and suggest 2 quick actions a user can take with EGroupware:"},
+        {"role": "user", "content": content[:4000]}  # limit size
+    ]
+
+    summary = llm_service.get_non_streaming_completion(messages, current_user)
+    return JSONResponse(content={'result': {'summary': summary}})
